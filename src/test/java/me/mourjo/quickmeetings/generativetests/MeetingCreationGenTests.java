@@ -1,9 +1,5 @@
 package me.mourjo.quickmeetings.generativetests;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -11,6 +7,11 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Set;
 import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+
 import lombok.SneakyThrows;
 import me.mourjo.quickmeetings.db.Meeting;
 import me.mourjo.quickmeetings.db.User;
@@ -25,6 +26,9 @@ import net.jqwik.api.Combinators;
 import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
 import net.jqwik.api.Provide;
+import net.jqwik.api.Report;
+import net.jqwik.api.Reporting;
+import net.jqwik.api.Tag;
 import net.jqwik.api.Tuple;
 import net.jqwik.api.lifecycle.BeforeProperty;
 import net.jqwik.spring.JqwikSpringSupport;
@@ -38,6 +42,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+@Tag("test-being-demoed")
 @JqwikSpringSupport
 @WebMvcTest(MeetingsController.class)
 @AutoConfigureMockMvc
@@ -58,6 +63,7 @@ public class MeetingCreationGenTests {
     String meetingName;
 
     @SneakyThrows
+    @Report(Reporting.FALSIFIED)
     @Property(tries = 100000, afterFailure = AfterFailureMode.RANDOM_SEED)
     void validMeetingRangeShouldReturn2xx(
         @ForAll("meetingArgs") MeetingArgs meetingArgs) {
@@ -120,8 +126,7 @@ public class MeetingCreationGenTests {
             )
         ).andExpect(matcher -> assertThat(matcher.getResponse().getContentAsString())
             .containsAnyOf(
-                "Meeting created",
-                "gap in the local time-line, typically caused by daylight savings"
+                "Meeting created"
             )
         ).andReturn();
     }
