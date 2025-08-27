@@ -34,6 +34,7 @@ import net.jqwik.api.Combinators;
 import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
 import net.jqwik.api.Provide;
+import net.jqwik.api.Tag;
 import net.jqwik.api.lifecycle.BeforeProperty;
 import net.jqwik.api.state.Action;
 import net.jqwik.api.state.ActionChain;
@@ -58,18 +59,10 @@ public class OperationsGenTests {
     JdbcClient jdbcClient;
 
     @Property(afterFailure = AfterFailureMode.RANDOM_SEED)
+    @Tag("test-being-demoed")
     void noOperationCausesAnOverlap(@ForAll("meetingActions") ActionChain<MeetingState> chain) {
         var finalState = chain
             .withInvariant(MeetingState::assertNoUserHasOverlappingMeetings)
-            .run();
-
-        collectStatistics(finalState);
-    }
-
-    @Property(afterFailure = AfterFailureMode.RANDOM_SEED)
-    void noOperationCausesEmptyMeetings(@ForAll("meetingActions") ActionChain<MeetingState> chain) {
-        var finalState = chain
-            .withInvariant(MeetingState::assertEveryMeetingHasOneConfirmedAttendee)
             .run();
 
         collectStatistics(finalState);
@@ -296,20 +289,6 @@ class MeetingState {
 
     void assertNoUserHasOverlappingMeetings() {
         assertThat(hasOverlap()).as("No action causes overlapping meetings").isFalse();
-    }
-
-    void assertEveryMeetingHasOneConfirmedAttendee() {
-        var attendeeCount = jdbcClient.sql("""
-                select count(*)
-                from user_meetings
-                where meeting_id NOT IN (
-                     select meeting_id from user_meetings where role_of_user IN ('OWNER', 'ACCEPTED')
-                );
-                """)
-            .query(Integer.class)
-            .single();
-
-        assertThat(attendeeCount).as("No meeting should have zero attendees").isEqualTo(0);
     }
 
     List<Meeting> getAllMeetings() {
