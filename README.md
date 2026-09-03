@@ -53,10 +53,12 @@ finding above. The bug commit is the only change to `src/main`, so each lane's f
 one cause. (Upstream the branches also lag `main` on unrelated fixes; see [Findings](#findings).)
 
 **Provenance, stated exactly.** Every bug is a real `git cherry-pick -x` of the upstream commit that
-introduced it, and each branch's `src/main` diff against `main` is byte-identical to that commit's —
+introduced it, and every line each branch adds to or removes from `src/main` is identical to that
+commit's — the surrounding context differs, because this `main` is ahead of the commit's parent —
 `demo-1` replays two (`575d8d3`, `69dae75`), the rest one each (`586be6c`, `7cb6fc9`, `6910be3`,
-`42db256`). Only `demo-1`'s first pick needed a resolution, and its commit message says what was
-adapted. The **property** commits are **adapted replays**, not verbatim ones: upstream each demoed
+`42db256`). Only `demo-1`'s first pick needed a resolution: its import block conflicted, and it
+keeps the validation imports this `main` carries while dropping exactly the five that commit drops.
+Its commit message says so. The **property** commits are **adapted replays**, not verbatim ones: upstream each demoed
 property reaches its final form over 5 to 25 commits interleaved with unrelated branch work, so each
 branch here carries one commit holding that single test file exactly as the upstream branch tip has
 it, with the tag commit and the tip named in the message.

@@ -36,7 +36,8 @@
     "walkCeiling": "exhausted",
     "walkFrontier": 0,
     "walkCounterexamples": 0,
-    "jqwikProperty": "me.mourjo.quickmeetings.generativetests.RequestResponseGenTests#responsesAreAlwaysValidJson"
+    "jqwikProperty": "me.mourjo.quickmeetings.generativetests.RequestResponseGenTests#responsesAreAlwaysValidJson",
+    "jqwikErrorType": "com.fasterxml.jackson.core.JsonParseException"
   },
   "demo-2-invalid-date-range": {
     "deckRows": 574,

@@ -12,9 +12,17 @@ is_up() { curl -sf -o /dev/null "http://localhost:$PORT/v3/api-docs" 2>/dev/null
 
 listener() { lsof -t -nP -iTCP:"$PORT" -sTCP:LISTEN 2>/dev/null || true; }
 
-# only ever kill what this script started: a recorded pid that still looks like our app
+cwd_of() {
+  if [ -r "/proc/$1/cwd" ]; then readlink -f "/proc/$1/cwd" 2>/dev/null
+  else lsof -a -p "$1" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -1
+  fi
+}
+
+# only ever kill what this script started: a recorded pid that still looks like our app AND is
+# running out of this checkout, so a same-named process elsewhere on the machine is never touched
 ours() {
-  ps -p "$1" -o command= 2>/dev/null | grep -qE 'spring-boot:run|quickmeetings\.QuickmeetingsApplication'
+  ps -p "$1" -o command= 2>/dev/null | grep -qE 'spring-boot:run|quickmeetings\.QuickmeetingsApplication' \
+    && [ "$(cwd_of "$1")" = "$SUT" ]
 }
 
 up() {
