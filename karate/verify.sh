@@ -46,8 +46,8 @@ if 'shrinkSteps' in want:
     got['shrinkSteps'] = len(shrink[seq]['steps'])
     got['shrinkVerified'] = shrink[seq]['verified']
 
-# jqwikProperty is jqwik-check.sh's expectation, not a lane's
-bad = {k: v for k, v in want.items() if k != 'jqwikProperty' and got.get(k) != v}
+# the jqwik* keys are jqwik-check.sh's expectations, not a lane's
+bad = {k: v for k, v in want.items() if not k.startswith('jqwik') and got.get(k) != v}
 width = max(len(k) for k in got)
 for k in got:
     flag = '  <-- expected %r' % (want[k],) if k in bad else ''
