@@ -46,7 +46,11 @@ about *why*, which a status-code diff cannot see.
 
 Each branch here is this repository's `main` plus **exactly one commit**, the author's, carrying
 only that bug — so a lane's finding has one cause. (Upstream the branches also lag `main` on
-unrelated fixes; see [Findings](#findings).)
+unrelated fixes; see [Findings](#findings).) The jqwik column names the property **as the author's
+own branch carries it**: the branches tag it `test-being-demoed`, and `./tests-being-demoed.sh` is
+how the article runs it. Here the branches carry `main`'s copy of the suite instead, untagged — and
+for `demo-2` `main`'s copy of `validMeetingRangeShouldReturn2xx` accepts the DST-gap message, so it
+is the branch's tightened variant, not this one, that falsifies.
 
 ## Prerequisites
 
@@ -133,11 +137,12 @@ The lanes individually:
 | `./walk.sh` | the bounded walk over the twin: states, transitions, guard refusals, invariants |
 | `./verify.sh` | all four, checked against this branch's row in `expected.json` |
 
-The walk is where the sequences come from. Under the plan the twin declares it **exhausts** its
-frontier rather than tripping a ceiling: 5 of 5 states and 17 of 17 transitions reached over 219
-nodes and 1,294 edges, 3,086 guard refusals censused, and both invariants checked 438 times with
-zero failures. The sequences pinned in `rulebooks/meetings/sequences.json` are the witnesses that
-walk produced; they are shortest by construction.
+The walk is what says the model has been explored rather than sampled. Under the plan the twin
+declares it **exhausts** its frontier rather than tripping a ceiling: 5 of 5 states and 17 of 17
+transitions reached over 219 nodes and 1,294 edges, 3,086 guard refusals censused, and the two
+invariants checked 438 times between them without a failure. The ten rows in
+`rulebooks/meetings/sequences.json` are authored against that walk — one per required transition and
+rejection in `required.json` — and pinned, so every run replays the same ten.
 
 The API has no reset endpoint, so the twin declares no in-model reset and the root world is restored
 out of band. `live.sh` hands that to the engine as a reset hook — `reset: {command: ['./reset-sut.sh']}` —
@@ -225,7 +230,7 @@ karate/
     generator.js     the declared input domain — levels reaching every relation and both DST days
     scenarios.json   the worked rows, one per interval relation plus the two DST days
     twin.js          the lifecycle: three users, create / invite / accept / reject
-    sequences.json   the pinned sequences the walk produced
+    sequences.json   the ten pinned sequences, one per required transition and rejection
   checks/
     deck-live.js     drives a deck through the API with calc.js as the oracle
     contract-live.js the transport probes
