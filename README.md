@@ -1,92 +1,110 @@
-# quick-meetings, re-tested with a rulebook and a twin
+# quick-meetings, tested with a rulebook and a twin
 
-## Attribution
+This repository takes the sample app from an InfoQ article about generative testing and tests it a
+second way. The article finds five seeded bugs with jqwik, a property-based testing library. Here a
+rulebook and a twin find the same five bugs. Both approaches sit side by side, so you can compare
+them on the same code.
 
-The application in this repository is **[quick-meetings](https://github.com/mourjo/quick-meetings)
-by Mourjo Sen**, the sample app for his InfoQ article
-**[Beyond Accidental Quality: Finding Hidden Bugs with Generative
-Testing](https://www.infoq.com/articles/generative-testing/)**. It is reused and redistributed here
-under the author's **MIT licence** ([`LICENSE`](LICENSE), his own commit carried verbatim) and
-with his written permission. The application, its `pom.xml` and its jqwik test suite are
-**byte-for-byte upstream**; Karate Labs' executable overlay is under [`karate/`](karate), with this
-README, [`NOTICE.md`](NOTICE.md), [`SECURITY.md`](SECURITY.md) and the CI workflows at the root. The
-author's own README is kept as [`UPSTREAM.md`](UPSTREAM.md).
+## Credits
 
-The full attribution and the licence split are in [`NOTICE.md`](NOTICE.md); the Karate Labs material
-is MIT ([`karate/LICENSE`](karate/LICENSE)).
+The app is [quick-meetings](https://github.com/mourjo/quick-meetings) by **Mourjo Sen**. He wrote it
+for his InfoQ article [Beyond Accidental Quality: Finding Hidden Bugs with Generative
+Testing](https://www.infoq.com/articles/generative-testing/). Read the article first. It explains the
+app, the five bugs, and how jqwik finds them.
 
-## What this proves
+The app is here under the author's [MIT licence](LICENSE), with his written permission. His code, his
+`pom.xml` and his jqwik tests are unchanged. His README is kept as [`UPSTREAM.md`](UPSTREAM.md).
 
-The article seeds five bugs into a Spring Boot meeting scheduler and lets jqwik discover them by
-generating random actions. Here the same five bugs are re-found by an **LLM-authored rulebook** (the
-booking rules as an executable oracle) and a **twin** (the lifecycle as a behaviour model) —
-deterministically, from a deck and a set of pinned sequences that are the same on every run. Where
-jqwik samples randomly on a fresh seed and shrinks whatever it happens to falsify, every finding
-below is reproducible by construction: each failing sequence is replayed and confirmed already
-minimal, rather than searched down to one. The concession runs the other way too: jqwik will shrink
-an *arbitrary* failing chain that nobody anticipated, and unbounded random interleavings can wander
-past any modelled ceiling.
+Everything from Karate Labs is in the [`karate/`](karate) directory, plus this README, the CI
+workflows, [`NOTICE.md`](NOTICE.md) and [`SECURITY.md`](SECURITY.md). This material is MIT too, see
+[`karate/LICENSE`](karate/LICENSE). `NOTICE.md` has the full attribution.
+
+## What this shows
+
+The article seeds five bugs into a Spring Boot meeting scheduler. jqwik finds them by generating
+random actions. Every run uses a fresh random seed.
+
+Here the same five bugs are found by two things an LLM wrote:
+
+- A **rulebook**: the booking rules as executable code. It computes the correct answer for any input.
+- A **twin**: the meeting lifecycle as a state model. It knows which actions are allowed in each state.
+
+Both are deterministic. The rulebook drives a fixed deck of 574 rows. The twin replays ten fixed
+sequences of actions. Every run gives the same result, and every finding reproduces on the first try.
+
+To be fair to jqwik: it can shrink a failing chain of actions that nobody planned for. Our sequences
+are planned, so shrinking only confirms that they are already minimal. And random actions can reach
+states that a model does not include.
 
 ## The five bugs, both ways
 
-The article's bug, the branch, the jqwik property that finds it upstream, and the Karate lane that
-re-finds it. Every number in the last column is measured — see [Findings](#findings).
+Each row is one bug from the article. The jqwik column names the test that finds it. The Karate
+column names the lane that finds it and the result. All numbers are measured, see
+[Results](#results).
 
-| Article bug | Branch | jqwik property (`src/test/java/me/mourjo/quickmeetings/generativetests/`) | Karate lane and finding |
+| Bug from the article | Branch | jqwik test (`src/test/java/me/mourjo/quickmeetings/generativetests/`) | Karate lane and result |
 | --- | --- | --- | --- |
-| The API server does not always return valid JSON | `demo-1-server-never-returns-5xx` | `RequestResponseGenTests.responsesAreAlwaysValidJson` | contract — **60 of 168** probes answer a 5xx or a non-JSON body |
-| A valid date range is rejected across a DST gap | `demo-2-invalid-date-range` | `MeetingCreationGenTests.validMeetingRangeShouldReturn2xx` | deck — **16 of 574** rows diverge; 8 of them only in the refusal *reason* (`rulebooks/meetings/calc.js`, `QM-003/1`) |
-| The overlap SQL misses containment | `demo-3-meeting-creation-scenarios` | `OverlappingMeetingsGenTest.overlappingMeetingsCannotBeCreated` | deck — **1 of 574** rows diverges (the `contains` relation, `calc.js` `QM-002/1`) · sequences — `seq-containment-refused` FAILs |
-| Accepting an invitation double-books a person | `demo-4-meeting-acceptations` | `OperationsGenTests.noOperationCausesAnOverlap` | sequences — `seq-accept-would-overlap` FAILs at step 3 (`rulebooks/meetings/twin.js`, `QM-006/1`) |
-| An owner can reject their own meeting, emptying it | `demo-5-empty-meetings` | `OperationsGenTests.noOperationCausesEmptyMeetings` | sequences — `seq-owner-cannot-reject` FAILs at step 1 (`twin.js`, `QM-007/1`) |
+| The server does not always return valid JSON | `demo-1-server-never-returns-5xx` | `RequestResponseGenTests.responsesAreAlwaysValidJson` | contract: **60 of 168** probes get a 5xx or a body that is not JSON |
+| A valid date range is rejected across a DST gap | `demo-2-invalid-date-range` | `MeetingCreationGenTests.validMeetingRangeShouldReturn2xx` | deck: **16 of 574** rows differ. 8 of them differ only in the refusal reason. Rule `QM-003/1` in `rulebooks/meetings/calc.js` |
+| The overlap SQL misses one meeting inside another | `demo-3-meeting-creation-scenarios` | `OverlappingMeetingsGenTest.overlappingMeetingsCannotBeCreated` | deck: **1 of 574** rows differs, the `contains` case. Rule `QM-002/1` in `calc.js`. Sequence `seq-containment-refused` fails |
+| Accepting an invitation double-books a person | `demo-4-meeting-acceptations` | `OperationsGenTests.noOperationCausesAnOverlap` | sequence `seq-accept-would-overlap` fails at step 3. Rule `QM-006/1` in `rulebooks/meetings/twin.js` |
+| An owner can reject their own meeting and empty it | `demo-5-empty-meetings` | `OperationsGenTests.noOperationCausesEmptyMeetings` | sequence `seq-owner-cannot-reject` fails at step 1. Rule `QM-007/1` in `twin.js` |
 
-Two things to notice. The **deck** varies values and the **twin** varies order, and neither
-substitutes for the other: a row-depth deck carries no state axis, so no value of any input reaches
-"accept an invitation you were sent before you double-booked yourself". And the deck compares the
-refusal **reason**, not just the verdict — half of demo-2's divergences are two 400s that disagree
-about *why*, which a status-code diff cannot see.
+Two things are worth a look.
 
-Each branch here is this repository's `main` plus the author's own commits: the **bug**, and the
-tagged jqwik property that demonstrates it. So both detections run on the same checkout —
-`./tests-being-demoed.sh` falsifies the way the article runs it, and `karate/verify.sh` reports the
-finding above. The bug commit is the only change to `src/main`, so each lane's finding has exactly
-one cause. (Upstream the branches also lag `main` on unrelated fixes; see [Findings](#findings).)
+The **deck** changes values. The **twin** changes the order of actions. Neither one replaces the
+other. No input value can reach "accept an invitation after you double-booked yourself". Only a
+sequence of actions can.
 
-**Provenance, stated exactly.** Every bug is a real `git cherry-pick -x` of the upstream commit that
-introduced it, and every line each branch adds to or removes from `src/main` is identical to that
-commit's — the surrounding context differs, because this `main` is ahead of the commit's parent —
-`demo-1` replays two (`575d8d3`, `69dae75`), the rest one each (`586be6c`, `7cb6fc9`, `6910be3`,
-`42db256`). Only `demo-1`'s first pick needed a resolution: its import block conflicted, and it
-keeps the validation imports this `main` carries while dropping exactly the five that commit drops.
-Its commit message says so. The **property** commits are **adapted replays**, not verbatim ones: upstream each demoed
-property reaches its final form over 5 to 25 commits interleaved with unrelated branch work, so each
-branch here carries one commit holding that single test file exactly as the upstream branch tip has
-it, with the tag commit and the tip named in the message.
+The deck compares the **reason** for a refusal, not only the status code. Half of the demo-2 rows are
+two `400` responses that disagree about why. A status-code comparison cannot see that.
 
-## Prerequisites
+## How the branches are built
 
-- Java 21, Maven, Docker.
-- A Karate licence, as `karate/.karate/karate.lic` or in `KARATE_LICENSE_TEXT`.
-- `psql` on the PATH is used to reset the database; without it the scripts fall back to
-  `docker exec postgres_quick_meetings psql`.
+Each `demo` branch is this repository's `main` plus the author's own commits:
 
-The engine jar is never committed. `karate/engine.sh` fetches it into `karate/lib/` — from
-`KARATE_AGENT_JAR` if you set it, else the pinned release asset, else by extracting it from
-`ghcr.io/karatelabs/karate-agent:<version>`. The version lives in one place,
-[`karate/engine.version`](karate/engine.version), and every script and the workflow read it.
+1. The commit that introduces the bug. This is the only change to `src/main`, so each result has
+   exactly one cause.
+2. The jqwik test that shows the bug, tagged `test-being-demoed` as in the article.
 
-## First act: the whole suite, with no application
+So both detections run on one checkout. `./tests-being-demoed.sh` runs the jqwik test the way the
+article does. `karate/verify.sh` checks the Karate result.
 
-The rulebook is the oracle *and* the mock. `karate/mock/quick-meetings.js` answers the same five
-endpoints and delegates every booking decision back to `Rule.execute('meetings', …)` — it holds no
-copy of the rules, so it cannot disagree with them. Nothing else changes: the same deck, the same
-probes, the same sequences.
+The bug commits are real `git cherry-pick -x` picks of the upstream commits. `demo-1` picks two
+(`575d8d3`, `69dae75`). The others pick one each (`586be6c`, `7cb6fc9`, `6910be3`, `42db256`). The
+lines each pick adds and removes are identical to the upstream commit. Only the surrounding lines
+differ, because this `main` is newer than the commit's parent. One pick needed a manual merge: the
+first `demo-1` pick had a conflict in its import block. Its commit message explains the fix.
+
+The test commits are **adapted replays**, not cherry-picks. Upstream, each test reaches its final
+form over 5 to 25 commits mixed with other work. Each branch here holds one commit with that one test
+file, exactly as the upstream branch has it. The commit message names the upstream commits.
+
+## Before you start
+
+You need:
+
+- Java 21, Maven and Docker.
+- A Karate licence. Put it at `karate/.karate/karate.lic`, or set `KARATE_LICENSE_TEXT`.
+- `psql` on your PATH, if possible. The scripts use it to reset the database. Without it, they use
+  `docker exec` into the Postgres container instead.
+
+The engine is a jar named `karate-agent`. It is never committed. `karate/engine.sh` downloads it into
+`karate/lib/`. It tries three sources in order: the `KARATE_AGENT_JAR` variable, the pinned release
+asset, then the container image `ghcr.io/karatelabs/karate-agent`. The version is in one file,
+[`karate/engine.version`](karate/engine.version). Every script and the CI workflow read it.
+
+## Step 1: run everything against the mock
+
+You do not need the app for this step. The rulebook is also the mock. `karate/mock/quick-meetings.js`
+serves the same five endpoints as the app. For every booking decision it calls
+`Rule.execute('meetings', ...)`. It holds no copy of the rules, so it cannot disagree with them.
 
 ```bash
 cd karate
-./serve.sh up            # the console, on :8099
-./mock.sh up             # the rules-backed stand-in, on :9981
-./verify.sh main mock    # every lane, asserted
+./serve.sh up            # start the engine console on port 8099
+./mock.sh up             # start the mock on port 9981
+./verify.sh main mock    # run every lane and check the results
 ```
 
 ```
@@ -111,68 +129,48 @@ walkCounterexamples   0
 main: every expectation met
 ```
 
-Green against the mock is green **by construction** — the mock computes its answers from the same
-rulebook the lanes grade against. That is what it is for: it proves the suite is wired, before the
-application exists or while it is down. The findings come from pointing the same lanes at the app.
+A green run against the mock is green by construction. The mock gets its answers from the same
+rulebook that grades them. This step proves that the whole suite is wired up before the app exists,
+or while the app is down. The real findings come from the next step.
 
-## Second act: the same lanes, against the real application
+## Step 2: run the same lanes against the app
 
 ```bash
-docker compose up -d     # Postgres on :5432
+docker compose up -d     # start Postgres on port 5432
 cd karate
 ./mock.sh down
-./app.sh up              # quick-meetings on :9981
-./reset-sut.sh           # no meetings, users 1/2/3 — the twin's root world
-./verify.sh              # every lane, asserted against expected.json
-./jqwik-check.sh         # and the author's own suite, on main
+./app.sh up              # start quick-meetings on port 9981
+./reset-sut.sh           # empty the meetings, create users 1, 2 and 3
+./verify.sh              # run every lane and check against expected.json
+./jqwik-check.sh         # run the author's own test suite
 ```
 
-```
-deckRows              574
-deckDiverged          0
-deckReasonOnly        0
-deckSetupFailed       0
-deckAccounted         True
-contractProbes        168
-contractViolations    0
-livePass              10
-liveFail              0
-liveFailing           []
-walkStates            5/5
-walkTransitions       17/17
-walkRefusals          3086
-walkInvariantsFailed  0
-walkCeiling           exhausted
-walkFrontier          0
-walkCounterexamples   0
+The output is the same as in step 1, and ends with `main: every expectation met`. On `main` the app
+has no bugs, so every lane agrees with the rulebook and the twin.
 
-main: every expectation met
-```
+Each script runs one lane:
 
-The lanes individually:
-
-| script | what it does |
+| Script | What it does |
 | --- | --- |
-| `./drive.sh` | 574 deterministic rows (saved scenarios + boundary + pairwise) through the API, `calc.js` as the oracle |
-| `./contract.sh` | 168 transport probes — every path × Accept × malformed body — asserting JSON and no 5xx |
-| `./live.sh` | the 10 pinned sequences replayed through the API, the database reset between them, failures shrunk |
-| `./walk.sh` | the bounded walk over the twin: states, transitions, guard refusals, invariants |
-| `./verify.sh` | all four, checked against this branch's row in `expected.json` |
-| `./jqwik-check.sh` | the author's detection: the whole suite on `main`, the tagged property on a defect branch, graded from the surefire report |
+| `./drive.sh` | Sends 574 rows through the API. The rows come from saved scenarios, boundary values and pairwise combinations. `calc.js` computes the expected answer for each row. |
+| `./contract.sh` | Sends 168 probes: every path, with every `Accept` header, with each of eight malformed bodies. Each response must be JSON and must not be a 5xx. |
+| `./live.sh` | Replays the ten sequences through the API. Resets the database before each one. Shrinks any sequence that fails. |
+| `./walk.sh` | Explores the twin: states, transitions, refused actions and invariants. |
+| `./verify.sh` | Runs all four lanes and checks the numbers against this branch's row in `expected.json`. |
+| `./jqwik-check.sh` | Runs the author's tests. On `main` the whole suite must pass. On a demo branch the tagged test must fail, and nothing else may break. It reads the surefire XML report to decide. |
 
-The walk is what says the model has been explored rather than sampled. Under the plan the twin
-declares it **exhausts** its frontier rather than tripping a ceiling: 5 of 5 states and 17 of 17
-transitions reached over 219 nodes and 1,294 edges, 3,086 guard refusals censused, and the two
-invariants checked 438 times between them without a failure. The ten rows in
-`rulebooks/meetings/sequences.json` are authored against that walk — one per required transition and
-rejection in `required.json` — and pinned, so every run replays the same ten.
+The walk shows that the model was explored, not sampled. It reaches all 5 states and all 17
+transitions over 219 nodes and 1,294 edges. It counts 3,086 refused actions. It checks the two
+invariants 438 times with no failure. It stops because there is nothing left to explore, not because
+it hit a limit. The ten sequences in `rulebooks/meetings/sequences.json` were written against this
+walk, one for each required transition and rejection in `required.json`. Every run replays the same
+ten.
 
-The API has no reset endpoint, so the twin declares no in-model reset and the root world is restored
-out of band. `live.sh` hands that to the engine as a reset hook — `reset: {command: ['./reset-sut.sh']}` —
-which runs before every sequence, and a world that could not be prepared is recorded as INVALID
-rather than as a finding about behaviour.
+The API has no reset endpoint. So `live.sh` gives the engine a reset command,
+`reset: {command: ['./reset-sut.sh']}`, and the engine runs it before each sequence. If the reset
+fails, the sequence is marked `INVALID`. It is not counted as a finding about the app.
 
-## Third act: the defect branches
+## Step 3: run a defect branch
 
 ```bash
 cd karate
@@ -209,87 +207,82 @@ shrinkVerified        CONFIRMED
 demo-3-meeting-creation-scenarios: every expectation met
 ```
 
-`switch-sut.sh` checks the branch out, restarts the app and resets the database; `jqwik-check.sh`
-runs the author's tagged property and asserts it falsified and nothing else broke; `verify.sh`
-asserts that branch's expected finding. A defect that stops reproducing fails either way.
+`switch-sut.sh` checks out the branch, restarts the app and resets the database. `jqwik-check.sh`
+checks that the author's test fails and nothing else breaks. `verify.sh` checks that the Karate lanes
+find what `expected.json` says they must. If a bug stops reproducing, both checks fail.
 
-### Findings
+## Results
 
-Measured against engine `2.1.3.RC3`, from a clean database, every lane driven by the scripts above.
+Measured with engine `2.1.3.RC3`, from an empty database, with the scripts above.
 
-| branch | deck (574 rows) | reason-only | contract (168 probes) | sequences (10) | shrink |
+| Branch | Deck (574 rows) | Reason only | Contract (168 probes) | Sequences (10) | Shrink |
 | --- | --- | --- | --- | --- | --- |
-| `main` | 0 diverged | — | 0 violations | 10 PASS | — |
-| `demo-1-server-never-returns-5xx` | 0 diverged | — | **60 violations** | 10 PASS | — |
-| `demo-2-invalid-date-range` | **16 diverged** | **8** | 0 violations | 10 PASS | — |
-| `demo-3-meeting-creation-scenarios` | **1 diverged** | 0 | 0 violations | **`seq-containment-refused` FAIL** | 2 → 2 steps, CONFIRMED |
-| `demo-4-meeting-acceptations` | 0 diverged | — | 0 violations | **`seq-accept-would-overlap` FAIL** | 4 → 4 steps, CONFIRMED |
-| `demo-5-empty-meetings` | 0 diverged | — | 0 violations | **`seq-owner-cannot-reject` FAIL** | 2 → 2 steps, CONFIRMED |
+| `main` | 0 differ | 0 | 0 violations | 10 pass | none |
+| `demo-1-server-never-returns-5xx` | 0 differ | 0 | **60 violations** | 10 pass | none |
+| `demo-2-invalid-date-range` | **16 differ** | **8** | 0 violations | 10 pass | none |
+| `demo-3-meeting-creation-scenarios` | **1 differs** | 0 | 0 violations | **`seq-containment-refused` fails** | 2 steps, confirmed |
+| `demo-4-meeting-acceptations` | 0 differ | 0 | 0 violations | **`seq-accept-would-overlap` fails** | 4 steps, confirmed |
+| `demo-5-empty-meetings` | 0 differ | 0 | 0 violations | **`seq-owner-cannot-reject` fails** | 2 steps, confirmed |
 
-The walk is model-only, so it reads the same on every branch: 5/5 states, 17/17 transitions, 3,086
-guard refusals, 438 invariant checks, 0 failures, 0 counterexamples, and an empty frontier — it
-exhausted the plan rather than stopping at a ceiling.
+The walk explores the model only, so its numbers are the same on every branch.
 
-Each shrink result reads `from == to`: the pinned sequences are already minimal, and the engine
-confirms that by replaying the minimum it found. That is the deliberate contrast with random
-generation — there was nothing to delta-debug, because nothing was generated at random.
+Each shrink result keeps the same number of steps. The ten sequences are already as short as
+possible. The engine confirms this by replaying the shortest version it finds. Nothing was random, so
+there was nothing to cut.
 
-Two numbers here are lower than the same measurement taken against the **upstream** branch tips,
-and the reason is this repository's branch shape. Upstream, each defect branch was cut before
-`main` gained request-body validation, so it carries that regression too. Measured against the
-upstream `demo-1` tip the contract lane reports 70 violations rather than 60, and the extra 10 are
-the missing validation, not the missing exception handlers. The `demo-2` deck reads 16 divergences
-on both.
+One number is lower here than against the upstream branches. Upstream, each demo branch was cut
+before `main` got request-body validation, so those branches carry that older behaviour too. Against
+the upstream `demo-1` branch, the contract lane reports 70 violations instead of 60. The extra 10
+come from the missing validation, not from the bug. The `demo-2` deck reports 16 differing rows on
+both.
 
 ## Continuous integration
 
-[`.github/workflows/verify.yml`](.github/workflows/verify.yml) runs the whole thing on every push to
-`main`: one job per branch, each standing the app up against a Postgres 16.4 service with the
-compose file's credentials and schema, fetching the engine jar from GHCR, and running `verify.sh`
-for that branch. A defect that stops reproducing, or a `main` that stops being clean, is a red run.
+[`verify.yml`](.github/workflows/verify.yml) runs on every push to `main`. It runs one job per
+branch. Each job starts Postgres 16.4 with the schema and credentials from the compose file, starts
+the app, downloads the engine from GHCR, and runs `jqwik-check.sh` and `verify.sh` for that branch.
+The run is red if a bug stops reproducing, or if `main` stops being clean.
 
-Both detections run in that same job, side by side. `karate/jqwik-check.sh` runs the author's own
-suite first and grades it from the surefire XML rather than from an exit code: on a defect branch
-the property named in `expected.json` must carry a failure or an error and nothing else may break
-(each of the five falsifies in under twenty seconds); on `main` the whole suite must pass.
+[`engine-gate.yml`](.github/workflows/engine-gate.yml) runs first. It checks that the pinned engine
+image exists. If the image is not published yet, the lanes are skipped with a warning. They are not
+marked as failed.
 
-The engine tag is probed first by [`engine-gate.yml`](.github/workflows/engine-gate.yml): a version
-whose image is not published yet skips the lanes grey with a warning rather than failing them red.
 The licence comes from the `KARATE_LICENSE` repository secret. No jar and no licence is ever
 committed.
 
-## Layout
+## Files
 
 ```
-src/ pom.xml docker-compose.yml     the application and its jqwik suite, byte-for-byte upstream
-UPSTREAM.md                         the author's own README
-NOTICE.md SECURITY.md               attribution and the licence split · how to report
+src/ pom.xml docker-compose.yml     the app and its jqwik tests, unchanged from upstream
+UPSTREAM.md                         the author's README
+NOTICE.md SECURITY.md               attribution and licences; how to report a problem
 karate/
   rulebooks/meetings/
-    schema.js        the meeting-creation input shape
-    calc.js          the ORACLE: duration, DST resolution, Allen's thirteen interval relations
-    generator.js     the declared input domain — levels reaching every relation and both DST days
-    scenarios.json   the worked rows, one per interval relation plus the two DST days
-    twin.js          the lifecycle: three users, create / invite / accept / reject
-    sequences.json   the ten pinned sequences, one per required transition and rejection
+    schema.js        the shape of a meeting request
+    calc.js          the rules: duration, DST, and the thirteen ways two intervals can relate
+    generator.js     the input domain: values that reach every relation and both DST days
+    scenarios.json   one saved row per interval relation, plus the two DST days
+    twin.js          the lifecycle: three users; create, invite, accept, reject
+    sequences.json   the ten sequences, one per required transition and rejection
   checks/
-    deck-live.js     drives a deck through the API with calc.js as the oracle
-    contract-live.js the transport probes
-    zones.js         the wall-clock/instant arithmetic, shared by the driver and the mock
-  mock/quick-meetings.js   the rules-backed stand-in
-  deck.json          the deterministic deck (saved + boundary + pairwise), engine-built
-  required.json      the required-row manifest the twin is graded against
-  expected.json      the finding each branch must produce
-  engine.version     the pinned engine, read by every script and the workflow
-  *.sh               engine · serve · ka · app · mock · reset · drive · contract · live · walk ·
-                     verify · jqwik-check · switch-sut
+    deck-live.js     sends the deck through the API and compares with calc.js
+    contract-live.js the 168 probes
+    zones.js         wall-clock and instant arithmetic, shared by the checks and the mock
+  mock/quick-meetings.js   the mock that answers from the rulebook
+  deck.json          the 574 rows, built by the engine
+  required.json      the states, transitions and rejections the twin must cover
+  expected.json      the result each branch must produce
+  engine.version     the engine version, read by every script and the CI workflow
+  *.sh               engine, serve, ka, app, mock, reset, drive, contract, live, walk,
+                     verify, jqwik-check, switch-sut
 ```
 
-## The interval convention is closed
+## A note on intervals
 
-Two meetings that merely touch — one ends exactly when the next begins — share an instant and
-conflict. That is the application's own convention: its SQL predicate is
-`from_ts <= :to AND to_ts >= :from` and its jqwik oracle asserts the same, so the rulebook adopts it
-rather than the half-open reading a scheduler usually takes. `duration.to` is likewise a
-**wall-clock** time, not an instant: across a DST fold a wall-clock range and a real duration are
-different intervals, and the wire's reading is the contract.
+In this app, two meetings that only touch still conflict. If one ends at the exact moment the next
+starts, they share that instant. This is the app's own convention. Its SQL predicate is
+`from_ts <= :to AND to_ts >= :from`, and its jqwik test asserts the same. So the rulebook uses the same
+convention, instead of the half-open intervals most schedulers use.
+
+Also, `duration.to` is a wall-clock time, not an instant. Across a DST change, a wall-clock range and
+a real duration are different intervals. The rulebook follows what the API sends.
