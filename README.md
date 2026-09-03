@@ -91,6 +91,8 @@ cd karate
 deckRows              574
 deckDiverged          0
 deckReasonOnly        0
+deckSetupFailed       0
+deckAccounted         True
 contractProbes        168
 contractViolations    0
 livePass              10
@@ -100,6 +102,9 @@ walkStates            5/5
 walkTransitions       17/17
 walkRefusals          3086
 walkInvariantsFailed  0
+walkCeiling           exhausted
+walkFrontier          0
+walkCounterexamples   0
 
 main: every expectation met
 ```
@@ -124,6 +129,8 @@ cd karate
 deckRows              574
 deckDiverged          0
 deckReasonOnly        0
+deckSetupFailed       0
+deckAccounted         True
 contractProbes        168
 contractViolations    0
 livePass              10
@@ -133,6 +140,9 @@ walkStates            5/5
 walkTransitions       17/17
 walkRefusals          3086
 walkInvariantsFailed  0
+walkCeiling           exhausted
+walkFrontier          0
+walkCounterexamples   0
 
 main: every expectation met
 ```
@@ -165,13 +175,20 @@ rather than as a finding about behaviour.
 ```bash
 cd karate
 ./switch-sut.sh demo-3-meeting-creation-scenarios
+./jqwik-check.sh demo-3-meeting-creation-scenarios
 ./verify.sh demo-3-meeting-creation-scenarios
+```
+
+```
+demo-3-meeting-creation-scenarios: me.mourjo.quickmeetings.generativetests.OverlappingMeetingsGenTest#overlappingMeetingsCannotBeCreated falsified (<failure>), nothing else broke
 ```
 
 ```
 deckRows              574
 deckDiverged          1
 deckReasonOnly        0
+deckSetupFailed       0
+deckAccounted         True
 contractProbes        168
 contractViolations    0
 livePass              9
@@ -181,14 +198,18 @@ walkStates            5/5
 walkTransitions       17/17
 walkRefusals          3086
 walkInvariantsFailed  0
+walkCeiling           exhausted
+walkFrontier          0
+walkCounterexamples   0
 shrinkSteps           2
 shrinkVerified        CONFIRMED
 
 demo-3-meeting-creation-scenarios: every expectation met
 ```
 
-`switch-sut.sh` checks the branch out and restarts the app; `verify.sh` asserts that branch's
-expected finding, so a defect that stops reproducing fails the run.
+`switch-sut.sh` checks the branch out, restarts the app and resets the database; `jqwik-check.sh`
+runs the author's tagged property and asserts it falsified and nothing else broke; `verify.sh`
+asserts that branch's expected finding. A defect that stops reproducing fails either way.
 
 ### Findings
 
@@ -204,7 +225,8 @@ Measured against engine `2.1.3.RC3`, from a clean database, every lane driven by
 | `demo-5-empty-meetings` | 0 diverged | — | 0 violations | **`seq-owner-cannot-reject` FAIL** | 2 → 2 steps, CONFIRMED |
 
 The walk is model-only, so it reads the same on every branch: 5/5 states, 17/17 transitions, 3,086
-guard refusals, 438 invariant checks, 0 failures.
+guard refusals, 438 invariant checks, 0 failures, 0 counterexamples, and an empty frontier — it
+exhausted the plan rather than stopping at a ceiling.
 
 Each shrink result reads `from == to`: the pinned sequences are already minimal, and the engine
 confirms that by replaying the minimum it found. That is the deliberate contrast with random
@@ -239,6 +261,7 @@ committed.
 ```
 src/ pom.xml docker-compose.yml     the application and its jqwik suite, byte-for-byte upstream
 UPSTREAM.md                         the author's own README
+NOTICE.md SECURITY.md               attribution and the licence split · how to report
 karate/
   rulebooks/meetings/
     schema.js        the meeting-creation input shape
@@ -256,7 +279,8 @@ karate/
   required.json      the required-row manifest the twin is graded against
   expected.json      the finding each branch must produce
   engine.version     the pinned engine, read by every script and the workflow
-  *.sh               engine · serve · ka · app · mock · reset · drive · contract · live · walk · verify · switch-sut
+  *.sh               engine · serve · ka · app · mock · reset · drive · contract · live · walk ·
+                     verify · jqwik-check · switch-sut
 ```
 
 ## The interval convention is closed
