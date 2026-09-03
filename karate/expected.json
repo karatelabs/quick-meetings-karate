@@ -1,0 +1,47 @@
+{
+  "main": {
+    "deckRows": 574, "deckDiverged": 0, "deckReasonOnly": 0,
+    "contractProbes": 168, "contractViolations": 0,
+    "livePass": 10, "liveFail": 0, "liveFailing": [],
+    "walkStates": "5/5", "walkTransitions": "17/17",
+    "walkRefusals": 3086, "walkInvariantsFailed": 0
+  },
+  "demo-1-server-never-returns-5xx": {
+    "deckRows": 574, "deckDiverged": 0, "deckReasonOnly": 0,
+    "contractProbes": 168, "contractViolations": 60,
+    "livePass": 10, "liveFail": 0, "liveFailing": [],
+    "walkStates": "5/5", "walkTransitions": "17/17",
+    "walkRefusals": 3086, "walkInvariantsFailed": 0
+  },
+  "demo-2-invalid-date-range": {
+    "deckRows": 574, "deckDiverged": 16, "deckReasonOnly": 8,
+    "contractProbes": 168, "contractViolations": 0,
+    "livePass": 10, "liveFail": 0, "liveFailing": [],
+    "walkStates": "5/5", "walkTransitions": "17/17",
+    "walkRefusals": 3086, "walkInvariantsFailed": 0
+  },
+  "demo-3-meeting-creation-scenarios": {
+    "deckRows": 574, "deckDiverged": 1, "deckReasonOnly": 0,
+    "contractProbes": 168, "contractViolations": 0,
+    "livePass": 9, "liveFail": 1, "liveFailing": ["seq-containment-refused"],
+    "shrinkSteps": 2, "shrinkVerified": "CONFIRMED",
+    "walkStates": "5/5", "walkTransitions": "17/17",
+    "walkRefusals": 3086, "walkInvariantsFailed": 0
+  },
+  "demo-4-meeting-acceptations": {
+    "deckRows": 574, "deckDiverged": 0, "deckReasonOnly": 0,
+    "contractProbes": 168, "contractViolations": 0,
+    "livePass": 9, "liveFail": 1, "liveFailing": ["seq-accept-would-overlap"],
+    "shrinkSteps": 4, "shrinkVerified": "CONFIRMED",
+    "walkStates": "5/5", "walkTransitions": "17/17",
+    "walkRefusals": 3086, "walkInvariantsFailed": 0
+  },
+  "demo-5-empty-meetings": {
+    "deckRows": 574, "deckDiverged": 0, "deckReasonOnly": 0,
+    "contractProbes": 168, "contractViolations": 0,
+    "livePass": 9, "liveFail": 1, "liveFailing": ["seq-owner-cannot-reject"],
+    "shrinkSteps": 2, "shrinkVerified": "CONFIRMED",
+    "walkStates": "5/5", "walkTransitions": "17/17",
+    "walkRefusals": 3086, "walkInvariantsFailed": 0
+  }
+}

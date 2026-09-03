@@ -7,29 +7,7 @@
 // A row agrees when the verdict AND the refusal reason match: a service that refuses the right
 // input for the wrong reason has a different bug, not the same behaviour.
 
-// the offsets the calc's zone table implies, as the wire needs them
-function offsetMins(zone, date, localMins) {
-    if (zone === 'UTC') { return 0; }
-    if (date === '2026-01-15') { return 60; }
-    if (date === '2026-06-15') { return 120; }
-    // on a transition day the offset before the change applies up to the change (the rule
-    // ZoneRules.getOffset(LocalDateTime) follows, which is what the service asks)
-    if (date === '2026-03-29') { return localMins < 180 ? 60 : 120; }
-    return localMins < 180 ? 120 : 60;
-}
-
-function utcMs(zone, date, time) {
-    var d = date.split('-');
-    var t = time.split(':');
-    var localMins = Number(t[0]) * 60 + Number(t[1]);
-    var asIfUtc = Date.UTC(Number(d[0]), Number(d[1]) - 1, Number(d[2]), Number(t[0]), Number(t[1]));
-    return asIfUtc - offsetMins(zone, date, localMins) * 60000;
-}
-
-function wireTime(ms) {
-    var s = new Date(ms).toISOString();
-    return { date: s.substring(0, 10), time: s.substring(11, 19) };
-}
+var Z = File.call('/checks/zones.js', {});
 
 // the service's refusal messages, read back as the rulebook's own reasons
 function liveReason(status, body) {
@@ -68,11 +46,11 @@ var run = function (opts) {
         if (user.status !== 200) { setupFailed.push({ at: i, stage: 'user', status: user.status }); continue; }
         var uid = user.body.id;
 
-        var startMs = utcMs(row.zone, row.date, row.time);
+        var startMs = Z.utcMs(row.zone, row.date, row.time);
 
         if (row.hasExisting && row.existingDurationMins > 0) {
-            var eFrom = wireTime(startMs + row.relStartMins * 60000);
-            var eTo = wireTime(startMs + (row.relStartMins + row.existingDurationMins) * 60000);
+            var eFrom = Z.wireTime(startMs + row.relStartMins * 60000);
+            var eTo = Z.wireTime(startMs + (row.relStartMins + row.existingDurationMins) * 60000);
             var pre = Http.post('/meeting',
                 createBody(uid, 'existing-' + i, 'UTC', eFrom.date, eFrom.time, eTo.date, eTo.time),
                 { full: true });
@@ -85,7 +63,7 @@ var run = function (opts) {
         // the API's `to` is a WALL-CLOCK time, not an instant, so the duration is added on the
         // local clock - across a DST fold the two readings differ and the wire's is the contract
         var pFrom = { date: row.date, time: row.time + ':00' };
-        var pTo = wallAdd(row.date, row.time, row.durationMins);
+        var pTo = Z.wallAdd(row.date, row.time, row.durationMins);
         var res = Http.post('/meeting',
             createBody(uid, 'proposed-' + i, row.zone, pFrom.date, pFrom.time, pTo.date, pTo.time),
             { full: true });
@@ -105,13 +83,5 @@ var run = function (opts) {
 
     return { rows: rows.length, agreed: agreed, diverged: diverged, setupFailed: setupFailed, byRelation: byRelation };
 };
-
-function wallAdd(date, time, mins) {
-    var d = date.split('-');
-    var t = time.split(':');
-    var s = new Date(Date.UTC(Number(d[0]), Number(d[1]) - 1, Number(d[2]),
-        Number(t[0]), Number(t[1])) + mins * 60000).toISOString();
-    return { date: s.substring(0, 10), time: s.substring(11, 19) };
-}
 
 run;

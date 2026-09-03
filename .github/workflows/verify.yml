@@ -1,0 +1,100 @@
+# verify.yml — the parity proof, re-run on every push.
+#
+# One job per branch: main and the five defect branches. Each stands the app up against a real
+# Postgres, points the engine at it, runs the deck, contract, walk and sequence lanes, and asserts
+# the finding that branch is expected to produce (karate/expected.json). A branch whose finding
+# changes fails here — that is the whole point.
+#
+# One-time setup: a repository secret KARATE_LICENSE holding the inline karate.lic text. The engine
+# jar is never committed; it is extracted from the pinned GHCR image by karate/engine.sh.
+name: verify
+
+# The matrix already covers the defect branches, so only main and PRs into it trigger a run.
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read        # pull the engine image from GHCR
+
+jobs:
+  engine:
+    uses: ./.github/workflows/engine-gate.yml
+
+  verify:
+    needs: engine
+    if: needs.engine.outputs.present == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        branch:
+          - main
+          - demo-1-server-never-returns-5xx
+          - demo-2-invalid-date-range
+          - demo-3-meeting-creation-scenarios
+          - demo-4-meeting-acceptations
+          - demo-5-empty-meetings
+
+    services:
+      postgres:
+        image: postgres:16.4
+        env:
+          POSTGRES_DB: quick_meetings
+          POSTGRES_USER: justin
+          POSTGRES_PASSWORD: quick_meetings
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U justin -d quick_meetings"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.branch }}
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      # the compose file mounts init.sql as an entrypoint script; a service container cannot, so
+      # the schema is applied here instead — same file, same credentials
+      - name: Create the schema
+        run: psql -h localhost -U justin -d quick_meetings -f src/test/resources/init.sql
+        env:
+          PGPASSWORD: quick_meetings
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch the engine jar
+        run: karate/engine.sh
+
+      - name: Start the app
+        run: karate/app.sh up
+
+      - name: Start the console
+        run: karate/serve.sh up
+        env:
+          KARATE_LICENSE_TEXT: ${{ secrets.KARATE_LICENSE }}
+
+      - name: Every lane, against the expected finding for this branch
+        run: karate/verify.sh ${{ matrix.branch }}
+
+      - name: App log
+        if: failure()
+        run: tail -100 karate/target/app.log karate/target/serve.log || true
