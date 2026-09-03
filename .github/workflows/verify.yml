@@ -74,17 +74,11 @@ jobs:
         env:
           PGPASSWORD: quick_meetings
 
-      # the author's own detection, run the way the article runs it: on a defect branch the tagged
-      # jqwik property must falsify, on main the whole suite must pass. It runs first because it
-      # writes to the same database the lanes then reset.
+      # the author's own detection, run the way the article runs it, and graded from the surefire
+      # XML rather than from an exit code. It runs first because it writes to the same database the
+      # lanes then reset.
       - name: The author's jqwik property
-        run: |
-          if [ "${{ matrix.branch }}" = main ]; then
-            mvn -q test
-          elif ./tests-being-demoed.sh; then
-            echo "::error title=the seeded defect no longer reproduces::the tagged jqwik property passed on ${{ matrix.branch }}"
-            exit 1
-          fi
+        run: karate/jqwik-check.sh ${{ matrix.branch }}
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -98,8 +92,8 @@ jobs:
 
       - name: Start the app
         run: |
-          karate/reset-sut.sh          # the jqwik run above left rows behind
           karate/app.sh up
+          karate/reset-sut.sh          # the jqwik run above left rows behind
         env:
           PGPASSWORD: quick_meetings
 
@@ -113,4 +107,4 @@ jobs:
 
       - name: App log
         if: failure()
-        run: tail -100 karate/target/app.log karate/target/serve.log || true
+        run: tail -100 karate/target/app.log karate/target/serve.log karate/target/jqwik.log || true

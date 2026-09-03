@@ -7,12 +7,13 @@ by Mourjo Sen**, the sample app for his InfoQ article
 **[Beyond Accidental Quality: Finding Hidden Bugs with Generative
 Testing](https://www.infoq.com/articles/generative-testing/)**. It is reused and redistributed here
 **with the author's written permission**; when the upstream project adopts a licence, that licence
-will be carried here verbatim. The app, its `pom.xml` and its jqwik test suite are **byte-for-byte
-upstream** — nothing outside `karate/` is ours, and the author's own README is kept as
-[`UPSTREAM.md`](UPSTREAM.md).
+will be carried here verbatim. The application, its `pom.xml` and its jqwik test suite are
+**byte-for-byte upstream**; Karate Labs' executable overlay is under [`karate/`](karate), with this
+README, [`NOTICE.md`](NOTICE.md), [`SECURITY.md`](SECURITY.md) and the CI workflows at the root. The
+author's own README is kept as [`UPSTREAM.md`](UPSTREAM.md).
 
-Everything under [`karate/`](karate) is Karate Labs' and is MIT-licensed
-([`karate/LICENSE`](karate/LICENSE)).
+The full attribution and the licence split are in [`NOTICE.md`](NOTICE.md); the Karate Labs material
+is MIT ([`karate/LICENSE`](karate/LICENSE)).
 
 ## What this proves
 
@@ -108,6 +109,7 @@ cd karate
 ./app.sh up              # quick-meetings on :9981
 ./reset-sut.sh           # no meetings, users 1/2/3 — the twin's root world
 ./verify.sh              # every lane, asserted against expected.json
+./jqwik-check.sh         # and the author's own suite, on main
 ```
 
 ```
@@ -136,6 +138,7 @@ The lanes individually:
 | `./live.sh` | the 10 pinned sequences replayed through the API, the database reset between them, failures shrunk |
 | `./walk.sh` | the bounded walk over the twin: states, transitions, guard refusals, invariants |
 | `./verify.sh` | all four, checked against this branch's row in `expected.json` |
+| `./jqwik-check.sh` | the author's detection: the whole suite on `main`, the tagged property on a defect branch, graded from the surefire report |
 
 The walk is what says the model has been explored rather than sampled. Under the plan the twin
 declares it **exhausts** its frontier rather than tripping a ceiling: 5 of 5 states and 17 of 17
@@ -213,9 +216,10 @@ on both.
 compose file's credentials and schema, fetching the engine jar from GHCR, and running `verify.sh`
 for that branch. A defect that stops reproducing, or a `main` that stops being clean, is a red run.
 
-Both detections run in that same job, side by side: `./tests-being-demoed.sh` must **fail** on a
-defect branch (each of the five falsifies in under twenty seconds), and `mvn test` must **pass** on
-`main`, before the Karate lanes run.
+Both detections run in that same job, side by side. `karate/jqwik-check.sh` runs the author's own
+suite first and grades it from the surefire XML rather than from an exit code: on a defect branch
+the property named in `expected.json` must carry a failure or an error and nothing else may break
+(each of the five falsifies in under twenty seconds); on `main` the whole suite must pass.
 
 The engine tag is probed first by [`engine-gate.yml`](.github/workflows/engine-gate.yml): a version
 whose image is not published yet skips the lanes grey with a warning rather than failing them red.

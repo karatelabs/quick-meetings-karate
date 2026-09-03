@@ -7,3 +7,4 @@ BR="$1"
 git checkout -q "$BR"
 echo "on $(git rev-parse --abbrev-ref HEAD)"
 ./karate/app.sh up
+./karate/reset-sut.sh

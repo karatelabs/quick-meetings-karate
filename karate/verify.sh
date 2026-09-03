@@ -25,6 +25,8 @@ got = {
     'deckRows': deck['rows'],
     'deckDiverged': deck['diverged'],
     'deckReasonOnly': deck['reasonOnly'],
+    'deckSetupFailed': deck['setupFailed'],
+    'deckAccounted': deck['agreed'] + deck['diverged'] == deck['rows'],
     'contractProbes': contract['probes'],
     'contractViolations': contract['violations'],
     'livePass': live['summary']['PASS'],
@@ -34,6 +36,9 @@ got = {
     'walkTransitions': walk['transitions'],
     'walkRefusals': walk['refusals'],
     'walkInvariantsFailed': walk['invariants']['failed'],
+    'walkCeiling': walk['ceiling'],
+    'walkFrontier': walk['frontier'],
+    'walkCounterexamples': walk['counterexamples'],
 }
 shrink = {s['id']: s['shrink'] for s in live['sequences'] if s.get('shrink')}
 if 'shrinkSteps' in want:
@@ -41,7 +46,8 @@ if 'shrinkSteps' in want:
     got['shrinkSteps'] = len(shrink[seq]['steps'])
     got['shrinkVerified'] = shrink[seq]['verified']
 
-bad = {k: (v, got.get(k)) for k, v in want.items() if got.get(k) != v}
+# jqwikProperty is jqwik-check.sh's expectation, not a lane's
+bad = {k: v for k, v in want.items() if k != 'jqwikProperty' and got.get(k) != v}
 width = max(len(k) for k in got)
 for k in got:
     flag = '  <-- expected %r' % (want[k],) if k in bad else ''

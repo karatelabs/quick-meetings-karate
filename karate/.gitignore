@@ -3,5 +3,6 @@ lib/
 *.jar
 .karate/
 .serve.pid
+.app.pid
 *.log
 rulebooks/*/.baseline/live.json
