@@ -46,12 +46,20 @@ substitutes for the other: a row-depth deck carries no state axis, so no value o
 refusal **reason**, not just the verdict — half of demo-2's divergences are two 400s that disagree
 about *why*, which a status-code diff cannot see.
 
-Each branch here is this repository's `main` plus **two of the author's commits**: the bug, and the
-tagged jqwik property that demonstrates it, both taken verbatim from the upstream branch. So both
-detections run on the same checkout — `./tests-being-demoed.sh` fails the way the article runs it,
-and `karate/verify.sh` reports the finding above. The bug commit is the only change to `src/main`,
-so each lane's finding has exactly one cause. (Upstream the branches also lag `main` on unrelated
-fixes; see [Findings](#findings).)
+Each branch here is this repository's `main` plus the author's own commits: the **bug**, and the
+tagged jqwik property that demonstrates it. So both detections run on the same checkout —
+`./tests-being-demoed.sh` falsifies the way the article runs it, and `karate/verify.sh` reports the
+finding above. The bug commit is the only change to `src/main`, so each lane's finding has exactly
+one cause. (Upstream the branches also lag `main` on unrelated fixes; see [Findings](#findings).)
+
+**Provenance, stated exactly.** Every bug is a real `git cherry-pick -x` of the upstream commit that
+introduced it, and each branch's `src/main` diff against `main` is byte-identical to that commit's —
+`demo-1` replays two (`575d8d3`, `69dae75`), the rest one each (`586be6c`, `7cb6fc9`, `6910be3`,
+`42db256`). Only `demo-1`'s first pick needed a resolution, and its commit message says what was
+adapted. The **property** commits are **adapted replays**, not verbatim ones: upstream each demoed
+property reaches its final form over 5 to 25 commits interleaved with unrelated branch work, so each
+branch here carries one commit holding that single test file exactly as the upstream branch tip has
+it, with the tag commit and the tip named in the message.
 
 ## Prerequisites
 
