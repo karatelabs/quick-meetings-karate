@@ -1,0 +1,29 @@
+{
+  "rows": [
+    { "id": "QM-S1", "kind": "state", "state": "empty" },
+    { "id": "QM-S2", "kind": "state", "state": "scheduled" },
+    { "id": "QM-S3", "kind": "state", "state": "hasPending" },
+    { "id": "QM-S4", "kind": "state", "state": "hasAccepted" },
+    { "id": "QM-S5", "kind": "state", "state": "booked" },
+
+    { "id": "QM-T1", "kind": "transition", "operation": "create", "from": "empty", "to": "scheduled" },
+    { "id": "QM-T2", "kind": "transition", "operation": "create", "from": "scheduled", "to": "booked" },
+    { "id": "QM-T3", "kind": "transition", "operation": "invite", "from": "scheduled", "to": "hasPending" },
+    { "id": "QM-T4", "kind": "transition", "operation": "accept", "from": "hasPending", "to": "hasAccepted" },
+    { "id": "QM-T5", "kind": "transition", "operation": "reject", "from": "hasPending", "to": "scheduled" },
+
+    { "id": "QM-R1", "kind": "rejection", "operation": "create", "from": "scheduled", "reason": "creating a meeting that overlaps one the user has already confirmed" },
+    { "id": "QM-R2", "kind": "rejection", "operation": "invite", "from": "scheduled", "reason": "inviting a user whose confirmed schedule the meeting overlaps" },
+    { "id": "QM-R3", "kind": "rejection", "operation": "accept", "from": "hasPending", "reason": "accepting an invitation that would overlap a confirmed meeting" },
+    { "id": "QM-R4", "kind": "rejection", "operation": "reject", "from": "scheduled", "reason": "an owner rejecting their own meeting" },
+
+    { "id": "QM-I1", "kind": "invariant",
+      "predicate": "function (w) { var users = [1,2,3]; for (var u = 0; u < users.length; u++) { var busy = []; for (var i = 0; i < w.meetings.length; i++) { for (var j = 0; j < w.meetings[i].members.length; j++) { var mm = w.meetings[i].members[j]; if (mm.user === users[u] && (mm.role === 'OWNER' || mm.role === 'ACCEPTED')) { busy.push(w.meetings[i]); } } } for (var a = 0; a < busy.length; a++) { for (var b = a + 1; b < busy.length; b++) { if (busy[a].start <= busy[b].end && busy[b].start <= busy[a].end) { return false; } } } } return true; }" },
+
+    { "id": "QM-I2", "kind": "invariant",
+      "predicate": "function (w) { for (var i = 0; i < w.meetings.length; i++) { var ok = false; for (var j = 0; j < w.meetings[i].members.length; j++) { var r = w.meetings[i].members[j].role; if (r === 'OWNER' || r === 'ACCEPTED') { ok = true; } } if (!ok) { return false; } } return true; }" },
+
+    { "id": "QM-A1", "kind": "assertion", "appliesTo": ["QM-T4"],
+      "predicate": "function (before, after, args) { var busy = []; for (var i = 0; i < after.meetings.length; i++) { for (var j = 0; j < after.meetings[i].members.length; j++) { var mm = after.meetings[i].members[j]; if (mm.user === args.user && (mm.role === 'OWNER' || mm.role === 'ACCEPTED')) { busy.push(after.meetings[i]); } } } for (var a = 0; a < busy.length; a++) { for (var b = a + 1; b < busy.length; b++) { if (busy[a].start <= busy[b].end && busy[b].start <= busy[a].end) { return false; } } } return true; }" }
+  ]
+}

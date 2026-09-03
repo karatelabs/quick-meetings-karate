@@ -1,0 +1,7 @@
+target/
+lib/
+*.jar
+.karate/
+.serve.pid
+*.log
+rulebooks/*/.baseline/live.json

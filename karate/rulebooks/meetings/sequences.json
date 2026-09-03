@@ -1,0 +1,399 @@
+{
+  "version": 1,
+  "provenance": {
+    "twin": "017e169b21524c256331d21d2fce1efda81326427dfc7936b5ebe316af64b2e7",
+    "calc": "9b7a93f553e69f10c97a6e1e8fdad94d0dd3bb911aa771f2f626a3271204eef9",
+    "schema": "a1a44aac955a36054928d3033e7b554a2c5259af7c91d4c44ab27115123a0f11",
+    "generator": "5827f5b7cfbbb9dc02c387e7c97febbf999b9207dd74200abad843e0fc334705"
+  },
+  "sequences": [
+    {
+      "_id": "seq-clean-two-meetings",
+      "_label": "two meetings for one user that share no instant",
+      "_from": {
+        "kind": "authored"
+      },
+      "steps": [
+        {
+          "command": "create",
+          "args": {
+            "owner": 1,
+            "slot": "A"
+          }
+        },
+        {
+          "command": "create",
+          "args": {
+            "owner": 1,
+            "slot": "D"
+          }
+        }
+      ],
+      "_expect": {
+        "steps": [
+          {
+            "at": 0,
+            "outcome": "applied"
+          },
+          {
+            "at": 1,
+            "outcome": "applied"
+          }
+        ]
+      }
+    },
+    {
+      "_id": "seq-containment-refused",
+      "_label": "the second meeting strictly contains the first - QM-002/1",
+      "_from": {
+        "kind": "authored"
+      },
+      "steps": [
+        {
+          "command": "create",
+          "args": {
+            "owner": 1,
+            "slot": "E"
+          }
+        },
+        {
+          "command": "create",
+          "args": {
+            "owner": 1,
+            "slot": "A"
+          }
+        }
+      ],
+      "_expect": {
+        "steps": [
+          {
+            "at": 0,
+            "outcome": "applied"
+          },
+          {
+            "at": 1,
+            "outcome": "refused",
+            "stage": "apply"
+          }
+        ]
+      }
+    },
+    {
+      "_id": "seq-during-refused",
+      "_label": "the second meeting sits strictly inside the first - QM-002/1",
+      "_from": {
+        "kind": "authored"
+      },
+      "steps": [
+        {
+          "command": "create",
+          "args": {
+            "owner": 1,
+            "slot": "A"
+          }
+        },
+        {
+          "command": "create",
+          "args": {
+            "owner": 1,
+            "slot": "E"
+          }
+        }
+      ],
+      "_expect": {
+        "steps": [
+          {
+            "at": 0,
+            "outcome": "applied"
+          },
+          {
+            "at": 1,
+            "outcome": "refused",
+            "stage": "apply"
+          }
+        ]
+      }
+    },
+    {
+      "_id": "seq-touching-refused",
+      "_label": "back to back - closed intervals share the instant - QM-002/1",
+      "_from": {
+        "kind": "authored"
+      },
+      "steps": [
+        {
+          "command": "create",
+          "args": {
+            "owner": 1,
+            "slot": "A"
+          }
+        },
+        {
+          "command": "create",
+          "args": {
+            "owner": 1,
+            "slot": "C"
+          }
+        }
+      ],
+      "_expect": {
+        "steps": [
+          {
+            "at": 0,
+            "outcome": "applied"
+          },
+          {
+            "at": 1,
+            "outcome": "refused",
+            "stage": "apply"
+          }
+        ]
+      }
+    },
+    {
+      "_id": "seq-overlap-refused",
+      "_label": "the plain overlap - QM-001/1",
+      "_from": {
+        "kind": "authored"
+      },
+      "steps": [
+        {
+          "command": "create",
+          "args": {
+            "owner": 1,
+            "slot": "A"
+          }
+        },
+        {
+          "command": "create",
+          "args": {
+            "owner": 1,
+            "slot": "B"
+          }
+        }
+      ],
+      "_expect": {
+        "steps": [
+          {
+            "at": 0,
+            "outcome": "applied"
+          },
+          {
+            "at": 1,
+            "outcome": "refused",
+            "stage": "apply"
+          }
+        ]
+      }
+    },
+    {
+      "_id": "seq-invite-conflict-refused",
+      "_label": "an invitee whose confirmed schedule the meeting overlaps - QM-005/1",
+      "_from": {
+        "kind": "authored"
+      },
+      "steps": [
+        {
+          "command": "create",
+          "args": {
+            "owner": 1,
+            "slot": "A"
+          }
+        },
+        {
+          "command": "create",
+          "args": {
+            "owner": 2,
+            "slot": "B"
+          }
+        },
+        {
+          "command": "invite",
+          "args": {
+            "m": 1,
+            "user": 1
+          }
+        }
+      ],
+      "_expect": {
+        "steps": [
+          {
+            "at": 2,
+            "outcome": "refused",
+            "stage": "apply"
+          }
+        ]
+      }
+    },
+    {
+      "_id": "seq-accept-would-overlap",
+      "_label": "invited first, then double-booked - accepting must be refused - QM-006/1",
+      "_from": {
+        "kind": "authored"
+      },
+      "steps": [
+        {
+          "command": "create",
+          "args": {
+            "owner": 2,
+            "slot": "B"
+          }
+        },
+        {
+          "command": "invite",
+          "args": {
+            "m": 0,
+            "user": 1
+          }
+        },
+        {
+          "command": "create",
+          "args": {
+            "owner": 1,
+            "slot": "A"
+          }
+        },
+        {
+          "command": "accept",
+          "args": {
+            "m": 0,
+            "user": 1
+          }
+        }
+      ],
+      "_expect": {
+        "steps": [
+          {
+            "at": 0,
+            "outcome": "applied"
+          },
+          {
+            "at": 1,
+            "outcome": "applied"
+          },
+          {
+            "at": 2,
+            "outcome": "applied"
+          },
+          {
+            "at": 3,
+            "outcome": "refused",
+            "stage": "apply"
+          }
+        ]
+      }
+    },
+    {
+      "_id": "seq-owner-cannot-reject",
+      "_label": "an owner cannot reject their own meeting - QM-007/1",
+      "_from": {
+        "kind": "authored"
+      },
+      "steps": [
+        {
+          "command": "create",
+          "args": {
+            "owner": 1,
+            "slot": "A"
+          }
+        },
+        {
+          "command": "reject",
+          "args": {
+            "m": 0,
+            "user": 1
+          }
+        }
+      ],
+      "_expect": {
+        "steps": [
+          {
+            "at": 0,
+            "outcome": "applied"
+          },
+          {
+            "at": 1,
+            "outcome": "refused",
+            "stage": "apply"
+          }
+        ]
+      }
+    },
+    {
+      "_id": "seq-accept-clean",
+      "_label": "an invitation with no conflict is accepted",
+      "_from": {
+        "kind": "authored"
+      },
+      "steps": [
+        {
+          "command": "create",
+          "args": {
+            "owner": 2,
+            "slot": "D"
+          }
+        },
+        {
+          "command": "invite",
+          "args": {
+            "m": 0,
+            "user": 1
+          }
+        },
+        {
+          "command": "accept",
+          "args": {
+            "m": 0,
+            "user": 1
+          }
+        }
+      ],
+      "_expect": {
+        "steps": [
+          {
+            "at": 2,
+            "outcome": "applied"
+          }
+        ]
+      }
+    },
+    {
+      "_id": "seq-reject-invite",
+      "_label": "an invitee declines - the meeting keeps its owner",
+      "_from": {
+        "kind": "authored"
+      },
+      "steps": [
+        {
+          "command": "create",
+          "args": {
+            "owner": 2,
+            "slot": "A"
+          }
+        },
+        {
+          "command": "invite",
+          "args": {
+            "m": 0,
+            "user": 1
+          }
+        },
+        {
+          "command": "reject",
+          "args": {
+            "m": 0,
+            "user": 1
+          }
+        }
+      ],
+      "_expect": {
+        "steps": [
+          {
+            "at": 2,
+            "outcome": "applied"
+          }
+        ]
+      }
+    }
+  ]
+}
