@@ -21,9 +21,10 @@ generating random actions. Here the same five bugs are re-found by an **LLM-auth
 booking rules as an executable oracle) and a **twin** (the lifecycle as a behaviour model) —
 deterministically, from a deck and a set of pinned sequences that are the same on every run. Where
 jqwik samples randomly on a fresh seed and shrinks whatever it happens to falsify, every finding
-below is reproducible by construction, and the failing sequence is minimised by replay rather than
-by search. The concession runs the other way too: jqwik will shrink an *arbitrary* failing chain
-that nobody anticipated, and unbounded random interleavings can wander past any modelled ceiling.
+below is reproducible by construction: each failing sequence is replayed and confirmed already
+minimal, rather than searched down to one. The concession runs the other way too: jqwik will shrink
+an *arbitrary* failing chain that nobody anticipated, and unbounded random interleavings can wander
+past any modelled ceiling.
 
 ## The five bugs, both ways
 
@@ -44,13 +45,12 @@ substitutes for the other: a row-depth deck carries no state axis, so no value o
 refusal **reason**, not just the verdict — half of demo-2's divergences are two 400s that disagree
 about *why*, which a status-code diff cannot see.
 
-Each branch here is this repository's `main` plus **exactly one commit**, the author's, carrying
-only that bug — so a lane's finding has one cause. (Upstream the branches also lag `main` on
-unrelated fixes; see [Findings](#findings).) The jqwik column names the property **as the author's
-own branch carries it**: the branches tag it `test-being-demoed`, and `./tests-being-demoed.sh` is
-how the article runs it. Here the branches carry `main`'s copy of the suite instead, untagged — and
-for `demo-2` `main`'s copy of `validMeetingRangeShouldReturn2xx` accepts the DST-gap message, so it
-is the branch's tightened variant, not this one, that falsifies.
+Each branch here is this repository's `main` plus **two of the author's commits**: the bug, and the
+tagged jqwik property that demonstrates it, both taken verbatim from the upstream branch. So both
+detections run on the same checkout — `./tests-being-demoed.sh` fails the way the article runs it,
+and `karate/verify.sh` reports the finding above. The bug commit is the only change to `src/main`,
+so each lane's finding has exactly one cause. (Upstream the branches also lag `main` on unrelated
+fixes; see [Findings](#findings).)
 
 ## Prerequisites
 
@@ -212,6 +212,10 @@ on both.
 `main`: one job per branch, each standing the app up against a Postgres 16.4 service with the
 compose file's credentials and schema, fetching the engine jar from GHCR, and running `verify.sh`
 for that branch. A defect that stops reproducing, or a `main` that stops being clean, is a red run.
+
+Both detections run in that same job, side by side: `./tests-being-demoed.sh` must **fail** on a
+defect branch (each of the five falsifies in under twenty seconds), and `mvn test` must **pass** on
+`main`, before the Karate lanes run.
 
 The engine tag is probed first by [`engine-gate.yml`](.github/workflows/engine-gate.yml): a version
 whose image is not published yet skips the lanes grey with a warning rather than failing them red.
