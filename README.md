@@ -6,8 +6,8 @@ The application in this repository is **[quick-meetings](https://github.com/mour
 by Mourjo Sen**, the sample app for his InfoQ article
 **[Beyond Accidental Quality: Finding Hidden Bugs with Generative
 Testing](https://www.infoq.com/articles/generative-testing/)**. It is reused and redistributed here
-**with the author's written permission**; when the upstream project adopts a licence, that licence
-will be carried here verbatim. The application, its `pom.xml` and its jqwik test suite are
+under the author's **MIT licence** ([`LICENSE`](LICENSE), his own commit carried verbatim) and
+with his written permission. The application, its `pom.xml` and its jqwik test suite are
 **byte-for-byte upstream**; Karate Labs' executable overlay is under [`karate/`](karate), with this
 README, [`NOTICE.md`](NOTICE.md), [`SECURITY.md`](SECURITY.md) and the CI workflows at the root. The
 author's own README is kept as [`UPSTREAM.md`](UPSTREAM.md).
