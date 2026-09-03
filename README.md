@@ -71,19 +71,28 @@ probes, the same sequences.
 cd karate
 ./serve.sh up            # the console, on :8099
 ./mock.sh up             # the rules-backed stand-in, on :9981
-./drive.sh               # the deck
-./contract.sh            # the transport contract
-./live.sh mock           # the pinned sequences
+./verify.sh main mock    # every lane, asserted
 ```
 
 ```
-{"rows":574,"agreed":574,"diverged":0,"setupFailed":0,"reasonOnly":0, ...}
-{"probes":168,"ok":168,"violations":0,"first":[]}
-{"PASS":10,"FAIL":0,"UNRESOLVED":0,"NOTCHECKED":0,"REFUSED":0,"INVALID":0,"exchanges":25, ...}
+deckRows              574
+deckDiverged          0
+deckReasonOnly        0
+contractProbes        168
+contractViolations    0
+livePass              10
+liveFail              0
+liveFailing           []
+walkStates            5/5
+walkTransitions       17/17
+walkRefusals          3086
+walkInvariantsFailed  0
+
+main: every expectation met
 ```
 
 Green against the mock is green **by construction** — the mock computes its answers from the same
-rulebook the lanes grade against. That is what it is for: it proves the suite runs, before the
+rulebook the lanes grade against. That is what it is for: it proves the suite is wired, before the
 application exists or while it is down. The findings come from pointing the same lanes at the app.
 
 ## Second act: the same lanes, against the real application

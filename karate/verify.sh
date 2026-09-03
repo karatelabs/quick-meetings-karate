@@ -1,22 +1,20 @@
 #!/usr/bin/env bash
-# verify.sh [branch] — run every lane against the running SUT and assert the finding this
-# branch is expected to produce (expected.json). Exit 1 on any mismatch.
+# verify.sh [branch] [live|mock] — run every lane against the running system and assert the
+# finding this branch is expected to produce (expected.json). Exit 1 on any mismatch.
 set -euo pipefail
 cd "$(dirname "$0")"
 BR="${1:-$(git rev-parse --abbrev-ref HEAD)}"
+AGAINST="${2:-live}"
 
 DECK="$(./drive.sh)"
 CONTRACT="$(./contract.sh)"
-LIVE="$(./live.sh)"
+LIVE="$(./live.sh "$AGAINST")"
 WALK="$(./walk.sh)"
 
 DECK="$DECK" CONTRACT="$CONTRACT" LIVE="$LIVE" WALK="$WALK" BR="$BR" python3 - <<'PY'
 import json, os, sys
 
-def payload(name):
-    return json.loads(os.environ[name])['payload']
-
-deck, contract, live, walk = (payload(n) for n in ('DECK', 'CONTRACT', 'LIVE', 'WALK'))
+deck, contract, live, walk = (json.loads(os.environ[n]) for n in ('DECK', 'CONTRACT', 'LIVE', 'WALK'))
 br = os.environ['BR']
 want = json.load(open('expected.json'))
 if br not in want:
