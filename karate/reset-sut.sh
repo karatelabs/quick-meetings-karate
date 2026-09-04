@@ -15,6 +15,12 @@ if command -v psql > /dev/null 2>&1; then
   PGPASSWORD="${PGPASSWORD:-}" psql -tA -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" \
     -c "SELECT id||':'||name FROM users ORDER BY id;"
 else
+  # docker exec reaches one container by name and cannot honour a host/port; refuse rather than
+  # truncate a database the caller did not point at.
+  if [ "$PGHOST" != localhost ] || [ "$PGPORT" != 5432 ]; then
+    echo "reset-sut.sh: psql not on PATH and PGHOST/PGPORT=$PGHOST:$PGPORT is not the default; set PGCONTAINER=<container> to reset by name" >&2
+    exit 2
+  fi
   docker exec "${PGCONTAINER:-postgres_quick_meetings}" psql -q -U "$PGUSER" -d "$PGDATABASE" -c "$SQL" > /dev/null
   docker exec "${PGCONTAINER:-postgres_quick_meetings}" psql -tA -U "$PGUSER" -d "$PGDATABASE" \
     -c "SELECT id||':'||name FROM users ORDER BY id;"
