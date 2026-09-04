@@ -14,10 +14,7 @@ up() {
   JAR="$("$HERE/engine.sh")"
   [ -n "${KARATE_LICENSE_TEXT:-}" ] || export KARATE_LICENSE_PATH="$HERE/.karate/karate.lic"
   mkdir -p "$HERE/target"
-  # a lane holds a whole run's exchanges in memory, and the deck lane is ~3,000 of them; the
-  # default heap is enough for one branch and not for several in a row
-  nohup java ${KARATE_SERVE_JAVA_OPTS:--Xmx2g} -jar "$JAR" serve "$HERE" --port "$PORT" \
-       --report-dir target/karate-reports > "$LOG" 2>&1 &
+  nohup java -jar "$JAR" serve "$HERE" --port "$PORT" --report-dir target/karate-reports > "$LOG" 2>&1 &
   echo $! > "$PIDFILE"
   for _ in $(seq 1 60); do
     if is_up; then echo "ready — http://localhost:$PORT"; return 0; fi
