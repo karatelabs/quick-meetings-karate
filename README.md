@@ -136,7 +136,7 @@ mutateGraded            77
 mutateExcluded          0
 mutateNotRun            0
 mutateTimeouts          0
-mutateSequences         ['seq-clean-two-meetings K4 S5 N47 SC20 I1 T0 den9 deck0.4444 order0.4444 raw0.4444', 'seq-containment-refused K16 S0 N47 SC13 I1 T0 den16 deck1 order1 raw1', 'seq-during-refused K16 S0 N47 SC13 I1 T0 den16 deck1 order1 raw1', 'seq-touching-refused K16 S0 N47 SC13 I1 T0 den16 deck1 order1 raw1', 'seq-overlap-refused K16 S0 N47 SC13 I1 T0 den16 deck1 order1 raw1', 'seq-invite-conflict-refused K30 S0 N32 SC14 I1 T0 den30 deck1 order1 raw1', 'seq-accept-would-overlap K37 S0 N20 SC19 I1 T0 den37 deck1 order1 raw1', 'seq-owner-cannot-reject K6 S8 N40 SC22 I1 T0 den14 deck0.4286 order0.4286 raw0.4286', 'seq-accept-clean K26 S1 N25 SC24 I1 T0 den27 deck0.963 order0.963 raw0.963', 'seq-reject-invite K27 S1 N26 SC22 I1 T0 den28 deck0.9643 order0.9643 raw0.9643']
+mutateSequences         ['seq-clean-two-meetings K4 S5 N55 SC12 I1 T0 den9 deck0.4444 order0.4444 raw0.4444', 'seq-containment-refused K16 S0 N55 SC5 I1 T0 den16 deck1 order1 raw1', 'seq-during-refused K16 S0 N55 SC5 I1 T0 den16 deck1 order1 raw1', 'seq-touching-refused K16 S0 N55 SC5 I1 T0 den16 deck1 order1 raw1', 'seq-overlap-refused K16 S0 N55 SC5 I1 T0 den16 deck1 order1 raw1', 'seq-invite-conflict-refused K30 S0 N33 SC13 I1 T0 den30 deck1 order1 raw1', 'seq-accept-would-overlap K37 S0 N20 SC19 I1 T0 den37 deck1 order1 raw1', 'seq-owner-cannot-reject K6 S8 N46 SC16 I1 T0 den14 deck0.4286 order0.4286 raw0.4286', 'seq-accept-clean K26 S1 N24 SC25 I1 T0 den27 deck0.963 order0.963 raw0.963', 'seq-reject-invite K27 S1 N26 SC22 I1 T0 den28 deck0.9643 order0.9643 raw0.9643']
 mutateCheckedByAny      48
 mutateKilledByAny       48
 mutateWorklist          []
@@ -303,19 +303,22 @@ are either unreached by any sequence or return the same bytes as the original.
 
 | Sequence | Killed of denominator | Not covered | Screened |
 | --- | --- | --- | --- |
-| `seq-clean-two-meetings` | 4 of 9 | 47 | 20 |
-| `seq-containment-refused` | 16 of 16 | 47 | 13 |
-| `seq-during-refused` | 16 of 16 | 47 | 13 |
-| `seq-touching-refused` | 16 of 16 | 47 | 13 |
-| `seq-overlap-refused` | 16 of 16 | 47 | 13 |
-| `seq-invite-conflict-refused` | 30 of 30 | 32 | 14 |
+| `seq-clean-two-meetings` | 4 of 9 | 55 | 12 |
+| `seq-containment-refused` | 16 of 16 | 55 | 5 |
+| `seq-during-refused` | 16 of 16 | 55 | 5 |
+| `seq-touching-refused` | 16 of 16 | 55 | 5 |
+| `seq-overlap-refused` | 16 of 16 | 55 | 5 |
+| `seq-invite-conflict-refused` | 30 of 30 | 33 | 13 |
 | `seq-accept-would-overlap` | 37 of 37 | 20 | 19 |
-| `seq-owner-cannot-reject` | 6 of 14 | 40 | 22 |
-| `seq-accept-clean` | 26 of 27 | 25 | 24 |
+| `seq-owner-cannot-reject` | 6 of 14 | 46 | 16 |
+| `seq-accept-clean` | 26 of 27 | 24 | 25 |
 | `seq-reject-invite` | 27 of 28 | 26 | 22 |
 
 The denominator is killed plus survived, and nothing else. `NOTCOVERED`, `SCREENED`, `INVALID` and
-`TIMEOUT` sit outside it, so they can neither flatter a rate nor cap it. The rows are not added up.
+`TIMEOUT` sit outside it, so they can neither flatter a rate nor cap it. Read the last two columns as
+one number: their sum is fixed per sequence, and where the line between them falls has been seen to
+move with the state of the engine process, while the killed count and the denominator did not. Start
+the console fresh - CI does, one per job - and take the split as the softer of the numbers here. The rows are not added up.
 The only thing read across them is set membership: 48 mutants got a verdict somewhere, 48 were
 killed somewhere, none survived everywhere.
 
@@ -397,7 +400,7 @@ mutateGraded            77
 mutateExcluded          0
 mutateNotRun            0
 mutateTimeouts          0
-mutateSequences         ['seq-clean-two-meetings K4 S5 N47 SC20 I1 T0 den9 deck0.4444 order0.4444 raw0.4444', 'seq-containment-refused K16 S0 N47 SC13 I1 T0 den16 deck1 order1 raw1', 'seq-during-refused K16 S0 N47 SC13 I1 T0 den16 deck1 order1 raw1', 'seq-touching-refused K16 S0 N47 SC13 I1 T0 den16 deck1 order1 raw1', 'seq-overlap-refused K16 S0 N47 SC13 I1 T0 den16 deck1 order1 raw1', 'seq-invite-conflict-refused K30 S0 N32 SC14 I1 T0 den30 deck1 order1 raw1', 'seq-accept-would-overlap K37 S0 N20 SC19 I1 T0 den37 deck1 order1 raw1', 'seq-owner-cannot-reject K6 S8 N40 SC22 I1 T0 den14 deck0.4286 order0.4286 raw0.4286', 'seq-accept-clean K26 S1 N25 SC24 I1 T0 den27 deck0.963 order0.963 raw0.963', 'seq-reject-invite K27 S1 N26 SC22 I1 T0 den28 deck0.9643 order0.9643 raw0.9643']
+mutateSequences         ['seq-clean-two-meetings K4 S5 N55 SC12 I1 T0 den9 deck0.4444 order0.4444 raw0.4444', 'seq-containment-refused K16 S0 N55 SC5 I1 T0 den16 deck1 order1 raw1', 'seq-during-refused K16 S0 N55 SC5 I1 T0 den16 deck1 order1 raw1', 'seq-touching-refused K16 S0 N55 SC5 I1 T0 den16 deck1 order1 raw1', 'seq-overlap-refused K16 S0 N55 SC5 I1 T0 den16 deck1 order1 raw1', 'seq-invite-conflict-refused K30 S0 N33 SC13 I1 T0 den30 deck1 order1 raw1', 'seq-accept-would-overlap K37 S0 N20 SC19 I1 T0 den37 deck1 order1 raw1', 'seq-owner-cannot-reject K6 S8 N46 SC16 I1 T0 den14 deck0.4286 order0.4286 raw0.4286', 'seq-accept-clean K26 S1 N24 SC25 I1 T0 den27 deck0.963 order0.963 raw0.963', 'seq-reject-invite K27 S1 N26 SC22 I1 T0 den28 deck0.9643 order0.9643 raw0.9643']
 mutateCheckedByAny      48
 mutateKilledByAny       48
 mutateWorklist          []

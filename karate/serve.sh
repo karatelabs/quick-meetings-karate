@@ -30,6 +30,9 @@ down() {
   [ -f "$PIDFILE" ] && kill "$(cat "$PIDFILE")" 2>/dev/null || true
   rm -f "$PIDFILE"
   pkill -f "serve $HERE " 2>/dev/null || true
+  # wait for the port to actually close: `restart` that returns while the old JVM is still
+  # listening leaves `up` reporting "already up" and the old process still serving
+  for _ in $(seq 1 30); do is_up || break; sleep 1; done
   echo "stopped."
 }
 
