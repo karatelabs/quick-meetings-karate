@@ -2,7 +2,7 @@
 # drive.sh — run the deterministic deck through the live SUT with calc.js as the oracle.
 # The deck is frozen, so the declared domain is read over it rather than enforced on it:
 # Schema.validate says which rows left the domain, Rule.check rolls them up per axis.
-# The domain read runs BEFORE the 574-row drive: a rulebook-analysis verb in the same eval
+# The domain read runs BEFORE the drive: a rulebook-analysis verb in the same eval
 # after it loses the worker, so the order is load-bearing, not cosmetic.
 set -euo pipefail
 cd "$(dirname "$0")"
