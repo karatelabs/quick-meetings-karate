@@ -29,7 +29,7 @@ Here the same five bugs are found by two things an LLM wrote:
 - A **rulebook**: the booking rules as executable code. It computes the correct answer for any input.
 - A **twin**: the meeting lifecycle as a state model. It knows which actions are allowed in each state.
 
-Both are deterministic. The rulebook drives a fixed deck of 574 rows. The twin replays ten fixed
+Both are deterministic. The rulebook drives a fixed deck of 974 rows. The twin replays ten fixed
 sequences of actions. Every run gives the same result, and every finding reproduces on the first try.
 
 To be fair to jqwik: it can shrink a failing chain of actions that nobody planned for. Our sequences
@@ -45,8 +45,8 @@ column names the lane that finds it and the result. All numbers are measured, se
 | Bug from the article | Branch | jqwik test (`src/test/java/me/mourjo/quickmeetings/generativetests/`) | Karate lane and result |
 | --- | --- | --- | --- |
 | The server does not always return valid JSON | `demo-1-server-never-returns-5xx` | `RequestResponseGenTests.responsesAreAlwaysValidJson` | contract: **60 of 168** probes get a 5xx or a body that is not JSON |
-| A valid date range is rejected across a DST gap | `demo-2-invalid-date-range` | `MeetingCreationGenTests.validMeetingRangeShouldReturn2xx` | deck: **16 of 574** rows differ. 8 of them differ only in the refusal reason. Rule `QM-003/1` in `rulebooks/meetings/calc.js` |
-| The overlap SQL misses one meeting inside another | `demo-3-meeting-creation-scenarios` | `OverlappingMeetingsGenTest.overlappingMeetingsCannotBeCreated` | deck: **1 of 574** rows differs, the `contains` case. Rule `QM-002/1` in `calc.js`. Sequence `seq-containment-refused` fails |
+| A valid date range is rejected across a DST gap | `demo-2-invalid-date-range` | `MeetingCreationGenTests.validMeetingRangeShouldReturn2xx` | deck: **233 of 974** rows differ. 158 of them differ only in the refusal reason. Rule `QM-003/1` in `rulebooks/meetings/calc.js` |
+| The overlap SQL misses one meeting inside another | `demo-3-meeting-creation-scenarios` | `OverlappingMeetingsGenTest.overlappingMeetingsCannotBeCreated` | deck: **1 of 974** rows differs, the `contains` case. Rule `QM-002/1` in `calc.js`. Sequence `seq-containment-refused` fails |
 | Accepting an invitation double-books a person | `demo-4-meeting-acceptations` | `OperationsGenTests.noOperationCausesAnOverlap` | sequence `seq-accept-would-overlap` fails at step 3. Rule `QM-006/1` in `rulebooks/meetings/twin.js` |
 | An owner can reject their own meeting and empty it | `demo-5-empty-meetings` | `OperationsGenTests.noOperationCausesEmptyMeetings` | sequence `seq-owner-cannot-reject` fails at step 1. Rule `QM-007/1` in `twin.js` |
 
@@ -110,12 +110,12 @@ cd karate
 ```
 
 ```
-deckRows                574
+deckRows                974
 deckDiverged            0
 deckReasonOnly          0
 deckSetupFailed         0
 deckAccounted           True
-deckOutOfDomain         60
+deckOutOfDomain         0
 deckDomainAxes          ['durationMins [1,600] 434 rows (suite)', 'existingDurationMins [0,480] 725 rows (suite,witness)']
 contractProbes          168
 contractViolations      0
@@ -167,13 +167,61 @@ Each script runs one lane:
 
 | Script | What it does |
 | --- | --- |
-| `./drive.sh` | Sends 574 rows through the API. The rows come from saved scenarios, boundary values and pairwise combinations. `calc.js` computes the expected answer for each row. Also reads the declared input domain over the deck. |
+| `./drive.sh` | Sends 974 rows through the API. The rows come from saved scenarios, boundary values and pairwise combinations. `calc.js` computes the expected answer for each row. Also reads the declared input domain over the deck. |
 | `./contract.sh` | Sends 168 probes: every path, with every `Accept` header, with each of eight malformed bodies. Each response must be JSON and must not be a 5xx. |
 | `./live.sh` | Replays the ten sequences through the API. Resets the database before each one. Shrinks any sequence that fails. |
 | `./walk.sh` | Explores the twin: states, transitions, transition pairs, refused actions and invariants. |
 | `./mutate.sh` | Grades the pinned sequences against mutants of the mock's guards. Touches no app. |
 | `./verify.sh` | Runs all five lanes and checks the numbers against this branch's row in `expected.json`. |
 | `./jqwik-check.sh` | Runs the author's tests. On `main` the whole suite must pass. On a demo branch the tagged test must fail, and nothing else may break. It reads the surefire XML report to decide. |
+
+### How the deck is cut
+
+`cut-deck.sh` builds `deck.json`: the saved scenarios, the boundary-value deck, and the t-way deck
+from `Rule.explore`, deduplicated, keeping only rows inside the declared domain. It is run
+deliberately and the result is committed; no lane calls it. Before, there was no script - the deck
+was a committed file with the recipe only in someone's head.
+
+The deck is cut at **strength 3**. All-pairs guarantees that every pair of input values appears
+together somewhere; strength 3 does the same for every triple. That matters here because the
+interval relation is not an input, it is a function of three of them - the proposed duration, the
+existing meeting's offset, and its duration.
+
+Two rows are the same test when they send the same request and set up the same world. When a row has
+no existing meeting, `deck-live.js` creates none and `calc.js` reads neither `relStartMins` nor
+`existingDurationMins`, so `cut-deck.sh` canonicalises those two axes away before deduplicating.
+Without that step the strength-3 deck is 13,109 rows, of which 12,674 are the same free-slot booking.
+With it, **974**.
+
+What that buys, counted by the relation each row lands in:
+
+| Relation | Strength 2 (574 rows) | Strength 3 (974 rows) |
+| --- | --- | --- |
+| `before` | 2 | 55 |
+| `after` | 1 | 51 |
+| `overlaps` | 1 | 23 |
+| `overlappedBy` | 1 | 30 |
+| `during` | 2 | 13 |
+| `contains` | 1 | **1** |
+| `equals` | 1 | 3 |
+| `meets` / `metBy` | 1 / 1 | 5 / 3 |
+| `starts` / `startedBy` | 1 / 1 | 7 / 2 |
+| `finishes` / `finishedBy` | 1 / 1 | 7 / 2 |
+
+Most relations go from one incidental row to a dozen or more. `contains` does not. It is still
+carried by exactly one row, and that row is a hand-written scenario, not something the covering array
+produced.
+
+That is worth saying rather than hiding, because `contains` is the relation `demo-3`'s bug lives in.
+A t-way covering array covers t-tuples of declared *levels*. It does not cover a predicate derived
+from several numeric axes at once: for the proposed meeting to strictly contain the existing one, the
+offset must be positive and the offset plus the existing duration must be under the proposed
+duration, all at the same time. No amount of raising `t` guarantees that region gets hit; it only
+makes it more likely. Raising the strength improved the odds everywhere else and left this one cell
+where it was.
+
+So the honest reading is that the deck's reach on containment is still owed to a person who thought
+about interval algebra and wrote the row down. The generator earns the other twelve relations.
 
 ### The declared domain
 
@@ -203,16 +251,20 @@ So the generator now runs 1 to 600. The engine still probes one below each floor
 did instead of clamping it. That is where the two rollup lines come from: 434 generated rows sit below
 `durationMins` 1, and 725 sit below `existingDurationMins` 0.
 
-`deck.json` is frozen, so the domain is read over it rather than enforced on it. **60 of the 574 rows
-are out of the declared domain** - every one of them a zero-length meeting. They are declared, they
-still run, and they are not counted as violations. Nothing is deleted to make a number look better.
+`deck.json` is frozen between cuts, so the domain is read over it rather than enforced on it, and
+`deckOutOfDomain` says how many of its rows left the domain. The declaration was made against the
+old 574-row deck first, and 60 of those rows were outside it - every one a zero-length meeting.
+They ran, they were disclosed, and they were not counted as violations. The current deck was cut
+after the declaration, and `cut-deck.sh` keeps only in-domain rows, so the count is now **0 of 974**
+by construction. The number is still pinned, because a deck that drifts out of its own domain should
+show up as a change rather than as nothing.
 
 One thing follows that is worth stating plainly. Once the floor is 1, the arm in `calc.js` that
 refuses a zero-length meeting can only be reached by input the domain excludes. `Rule.check` reports
 it as `robustness.coverageOnly`: a defensive guard, not a business rule over the declared domain. The
 saved scenario that used to claim a zero-length meeting was a valid row now says what it actually is,
-`_expect: "schema-reject"`, and the check grades it `REFUSED`. The 60 deck rows still prove the app
-refuses one on the wire.
+`_expect: "schema-reject"`, and the check grades it `REFUSED` - which is the claim that matters, and
+the one the old deck rows only ever made by accident.
 
 The walk shows that the model was explored, not sampled. It reaches all 5 states and all 17
 transitions over 219 nodes and 1,294 edges. It counts 3,086 refused actions. It checks the two
@@ -319,12 +371,12 @@ demo-3-meeting-creation-scenarios: me.mourjo.quickmeetings.generativetests.Overl
 ```
 
 ```
-deckRows                574
+deckRows                974
 deckDiverged            1
 deckReasonOnly          0
 deckSetupFailed         0
 deckAccounted           True
-deckOutOfDomain         60
+deckOutOfDomain         0
 deckDomainAxes          ['durationMins [1,600] 434 rows (suite)', 'existingDurationMins [0,480] 725 rows (suite,witness)']
 contractProbes          168
 contractViolations      0
@@ -363,16 +415,21 @@ find what `expected.json` says they must. If a bug stops reproducing, both check
 
 Measured with engine `2.1.3.RC3`, from an empty database, with the scripts above.
 
-| Branch | Deck (574 rows) | Reason only | Contract (168 probes) | Sequences (10) | Shrink |
+| Branch | Deck (974 rows) | Reason only | Contract (168 probes) | Sequences (10) | Shrink |
 | --- | --- | --- | --- | --- | --- |
 | `main` | 0 differ | 0 | 0 violations | 10 pass | none |
 | `demo-1-server-never-returns-5xx` | 0 differ | 0 | **60 violations** | 10 pass | none |
-| `demo-2-invalid-date-range` | **16 differ** | **8** | 0 violations | 10 pass | none |
+| `demo-2-invalid-date-range` | **233 differ** | **158** | 0 violations | 10 pass | none |
 | `demo-3-meeting-creation-scenarios` | **1 differs** | 0 | 0 violations | **`seq-containment-refused` fails** | 2 steps, confirmed |
 | `demo-4-meeting-acceptations` | 0 differ | 0 | 0 violations | **`seq-accept-would-overlap` fails** | 4 steps, confirmed |
 | `demo-5-empty-meetings` | 0 differ | 0 | 0 violations | **`seq-owner-cannot-reject` fails** | 2 steps, confirmed |
 
-The walk explores the model only, so its numbers are the same on every branch.
+The deck was cut at strength 3. For the record, the strength-2 deck it replaces had 574 rows and read
+`demo-2` as 16 differing rows of which 8 were reason-only, and `demo-3` as the same single `contains`
+row. Which bug each branch's deck catches did not change; only how many rows catch it did.
+
+The walk, the mutation lane and the declared-domain rollup all read the rulebook and the model only,
+so their numbers are the same on every branch.
 
 Each shrink result keeps the same number of steps. The ten sequences are already as short as
 possible. The engine confirms this by replaying the shortest version it finds. Nothing was random, so

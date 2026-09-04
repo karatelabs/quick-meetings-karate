@@ -1,11 +1,11 @@
 {
   "main": {
-    "deckRows": 574,
+    "deckRows": 974,
     "deckDiverged": 0,
     "deckReasonOnly": 0,
     "deckSetupFailed": 0,
     "deckAccounted": true,
-    "deckOutOfDomain": 60,
+    "deckOutOfDomain": 0,
     "deckDomainAxes": [
       "durationMins [1,600] 434 rows (suite)",
       "existingDurationMins [0,480] 725 rows (suite,witness)"
@@ -46,12 +46,12 @@
     "mutateWorklist": []
   },
   "demo-1-server-never-returns-5xx": {
-    "deckRows": 574,
+    "deckRows": 974,
     "deckDiverged": 0,
     "deckReasonOnly": 0,
     "deckSetupFailed": 0,
     "deckAccounted": true,
-    "deckOutOfDomain": 60,
+    "deckOutOfDomain": 0,
     "deckDomainAxes": [
       "durationMins [1,600] 434 rows (suite)",
       "existingDurationMins [0,480] 725 rows (suite,witness)"
@@ -94,12 +94,12 @@
     "jqwikErrorType": "com.fasterxml.jackson.core.JsonParseException"
   },
   "demo-2-invalid-date-range": {
-    "deckRows": 574,
-    "deckDiverged": 16,
-    "deckReasonOnly": 8,
+    "deckRows": 974,
+    "deckDiverged": 233,
+    "deckReasonOnly": 158,
     "deckSetupFailed": 0,
     "deckAccounted": true,
-    "deckOutOfDomain": 60,
+    "deckOutOfDomain": 0,
     "deckDomainAxes": [
       "durationMins [1,600] 434 rows (suite)",
       "existingDurationMins [0,480] 725 rows (suite,witness)"
@@ -141,12 +141,12 @@
     "jqwikProperty": "me.mourjo.quickmeetings.generativetests.MeetingCreationGenTests#validMeetingRangeShouldReturn2xx"
   },
   "demo-3-meeting-creation-scenarios": {
-    "deckRows": 574,
+    "deckRows": 974,
     "deckDiverged": 1,
     "deckReasonOnly": 0,
     "deckSetupFailed": 0,
     "deckAccounted": true,
-    "deckOutOfDomain": 60,
+    "deckOutOfDomain": 0,
     "deckDomainAxes": [
       "durationMins [1,600] 434 rows (suite)",
       "existingDurationMins [0,480] 725 rows (suite,witness)"
@@ -192,12 +192,12 @@
     "jqwikProperty": "me.mourjo.quickmeetings.generativetests.OverlappingMeetingsGenTest#overlappingMeetingsCannotBeCreated"
   },
   "demo-4-meeting-acceptations": {
-    "deckRows": 574,
+    "deckRows": 974,
     "deckDiverged": 0,
     "deckReasonOnly": 0,
     "deckSetupFailed": 0,
     "deckAccounted": true,
-    "deckOutOfDomain": 60,
+    "deckOutOfDomain": 0,
     "deckDomainAxes": [
       "durationMins [1,600] 434 rows (suite)",
       "existingDurationMins [0,480] 725 rows (suite,witness)"
@@ -243,12 +243,12 @@
     "jqwikProperty": "me.mourjo.quickmeetings.generativetests.OperationsGenTests#noOperationCausesAnOverlap"
   },
   "demo-5-empty-meetings": {
-    "deckRows": 574,
+    "deckRows": 974,
     "deckDiverged": 0,
     "deckReasonOnly": 0,
     "deckSetupFailed": 0,
     "deckAccounted": true,
-    "deckOutOfDomain": 60,
+    "deckOutOfDomain": 0,
     "deckDomainAxes": [
       "durationMins [1,600] 434 rows (suite)",
       "existingDurationMins [0,480] 725 rows (suite,witness)"
