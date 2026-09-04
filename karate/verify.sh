@@ -27,6 +27,8 @@ got = {
     'deckReasonOnly': deck['reasonOnly'],
     'deckSetupFailed': deck['setupFailed'],
     'deckAccounted': deck['agreed'] + deck['diverged'] == deck['rows'],
+    'deckOutOfDomain': deck['outOfDomain'],
+    'deckDomainAxes': deck['domainAxes'],
     'contractProbes': contract['probes'],
     'contractViolations': contract['violations'],
     'livePass': live['summary']['PASS'],

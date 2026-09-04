@@ -113,6 +113,8 @@ deckDiverged            0
 deckReasonOnly          0
 deckSetupFailed         0
 deckAccounted           True
+deckOutOfDomain         60
+deckDomainAxes          ['durationMins [1,600] 434 rows (suite)', 'existingDurationMins [0,480] 725 rows (suite,witness)']
 contractProbes          168
 contractViolations      0
 livePass                10
@@ -154,12 +156,51 @@ Each script runs one lane:
 
 | Script | What it does |
 | --- | --- |
-| `./drive.sh` | Sends 574 rows through the API. The rows come from saved scenarios, boundary values and pairwise combinations. `calc.js` computes the expected answer for each row. |
+| `./drive.sh` | Sends 574 rows through the API. The rows come from saved scenarios, boundary values and pairwise combinations. `calc.js` computes the expected answer for each row. Also reads the declared input domain over the deck. |
 | `./contract.sh` | Sends 168 probes: every path, with every `Accept` header, with each of eight malformed bodies. Each response must be JSON and must not be a 5xx. |
 | `./live.sh` | Replays the ten sequences through the API. Resets the database before each one. Shrinks any sequence that fails. |
 | `./walk.sh` | Explores the twin: states, transitions, transition pairs, refused actions and invariants. |
 | `./verify.sh` | Runs all four lanes and checks the numbers against this branch's row in `expected.json`. |
 | `./jqwik-check.sh` | Runs the author's tests. On `main` the whole suite must pass. On a demo branch the tagged test must fail, and nothing else may break. It reads the surefire XML report to decide. |
+
+### The declared domain
+
+A coverage number only means something over a stated input universe. Here `schema.js` states it,
+next to the shape:
+
+```js
+durationMins: '#int[1,]',            // a meeting must end after it starts. no maximum
+existingDurationMins: '#int[0,]',    // 0 means there is no existing meeting
+```
+
+`calc.js` is where those come from: `duration.minMins` is 1, and the schedule declares no maximum
+length. The app agrees. It rejects a meeting only when the end is not after the start, and it accepts
+a nine-hour one.
+
+`generator.js` may narrow that domain and may never widen it. It used to run `durationMins` from 0 to
+600 with a comment claiming a bound of 1 to 480. Both were wrong: 480 is in no source file of the app,
+and 0 is below the declared floor. The engine refuses the widening by name rather than intersecting it
+quietly:
+
+```
+generator.js: 'durationMins' declares lo 0, outside the schema's #int[1,]
+  - schema.js declares the domain, the generator may only narrow it
+```
+
+So the generator now runs 1 to 600. The engine still probes one below each floor, and reports what it
+did instead of clamping it. That is where the two rollup lines come from: 434 generated rows sit below
+`durationMins` 1, and 725 sit below `existingDurationMins` 0.
+
+`deck.json` is frozen, so the domain is read over it rather than enforced on it. **60 of the 574 rows
+are out of the declared domain** - every one of them a zero-length meeting. They are declared, they
+still run, and they are not counted as violations. Nothing is deleted to make a number look better.
+
+One thing follows that is worth stating plainly. Once the floor is 1, the arm in `calc.js` that
+refuses a zero-length meeting can only be reached by input the domain excludes. `Rule.check` reports
+it as `robustness.coverageOnly`: a defensive guard, not a business rule over the declared domain. The
+saved scenario that used to claim a zero-length meeting was a valid row now says what it actually is,
+`_expect: "schema-reject"`, and the check grades it `REFUSED`. The 60 deck rows still prove the app
+refuses one on the wire.
 
 The walk shows that the model was explored, not sampled. It reaches all 5 states and all 17
 transitions over 219 nodes and 1,294 edges. It counts 3,086 refused actions. It checks the two
@@ -206,6 +247,8 @@ deckDiverged            1
 deckReasonOnly          0
 deckSetupFailed         0
 deckAccounted           True
+deckOutOfDomain         60
+deckDomainAxes          ['durationMins [1,600] 434 rows (suite)', 'existingDurationMins [0,480] 725 rows (suite,witness)']
 contractProbes          168
 contractViolations      0
 livePass                9
@@ -277,9 +320,9 @@ UPSTREAM.md                         the author's README
 NOTICE.md SECURITY.md               attribution and licences; how to report a problem
 karate/
   rulebooks/meetings/
-    schema.js        the shape of a meeting request
+    schema.js        the shape of a meeting request, and its declared input domain
     calc.js          the rules: duration, DST, and the thirteen ways two intervals can relate
-    generator.js     the input domain: values that reach every relation and both DST days
+    generator.js     values that reach every relation and both DST days. narrows the domain, never widens it
     scenarios.json   one saved row per interval relation, plus the two DST days
     twin.js          the lifecycle: three users; create, invite, accept, reject
     sequences.json   the ten sequences, one per required transition and rejection

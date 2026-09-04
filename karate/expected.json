@@ -5,6 +5,11 @@
     "deckReasonOnly": 0,
     "deckSetupFailed": 0,
     "deckAccounted": true,
+    "deckOutOfDomain": 60,
+    "deckDomainAxes": [
+      "durationMins [1,600] 434 rows (suite)",
+      "existingDurationMins [0,480] 725 rows (suite,witness)"
+    ],
     "contractProbes": 168,
     "contractViolations": 0,
     "livePass": 10,
@@ -26,6 +31,11 @@
     "deckReasonOnly": 0,
     "deckSetupFailed": 0,
     "deckAccounted": true,
+    "deckOutOfDomain": 60,
+    "deckDomainAxes": [
+      "durationMins [1,600] 434 rows (suite)",
+      "existingDurationMins [0,480] 725 rows (suite,witness)"
+    ],
     "contractProbes": 168,
     "contractViolations": 60,
     "livePass": 10,
@@ -49,6 +59,11 @@
     "deckReasonOnly": 8,
     "deckSetupFailed": 0,
     "deckAccounted": true,
+    "deckOutOfDomain": 60,
+    "deckDomainAxes": [
+      "durationMins [1,600] 434 rows (suite)",
+      "existingDurationMins [0,480] 725 rows (suite,witness)"
+    ],
     "contractProbes": 168,
     "contractViolations": 0,
     "livePass": 10,
@@ -71,6 +86,11 @@
     "deckReasonOnly": 0,
     "deckSetupFailed": 0,
     "deckAccounted": true,
+    "deckOutOfDomain": 60,
+    "deckDomainAxes": [
+      "durationMins [1,600] 434 rows (suite)",
+      "existingDurationMins [0,480] 725 rows (suite,witness)"
+    ],
     "contractProbes": 168,
     "contractViolations": 0,
     "livePass": 9,
@@ -97,6 +117,11 @@
     "deckReasonOnly": 0,
     "deckSetupFailed": 0,
     "deckAccounted": true,
+    "deckOutOfDomain": 60,
+    "deckDomainAxes": [
+      "durationMins [1,600] 434 rows (suite)",
+      "existingDurationMins [0,480] 725 rows (suite,witness)"
+    ],
     "contractProbes": 168,
     "contractViolations": 0,
     "livePass": 9,
@@ -123,6 +148,11 @@
     "deckReasonOnly": 0,
     "deckSetupFailed": 0,
     "deckAccounted": true,
+    "deckOutOfDomain": 60,
+    "deckDomainAxes": [
+      "durationMins [1,600] 434 rows (suite)",
+      "existingDurationMins [0,480] 725 rows (suite,witness)"
+    ],
     "contractProbes": 168,
     "contractViolations": 0,
     "livePass": 9,
