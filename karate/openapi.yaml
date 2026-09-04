@@ -1,0 +1,338 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "OpenAPI definition",
+        "version": "v0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:9981",
+            "description": "Generated server url"
+        }
+    ],
+    "paths": {
+        "/user": {
+            "post": {
+                "tags": [
+                    "users-controller"
+                ],
+                "operationId": "createUser",
+                "parameters": [
+                    {
+                        "name": "name",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserCreationResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/meeting": {
+            "post": {
+                "tags": [
+                    "meetings-controller"
+                ],
+                "operationId": "createMeeting",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MeetingCreationRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MeetingCreationResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/meeting/reject": {
+            "post": {
+                "tags": [
+                    "meetings-controller"
+                ],
+                "operationId": "reject",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MeetingRejectionRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MeetingRejectionResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/meeting/invite": {
+            "post": {
+                "tags": [
+                    "meetings-controller"
+                ],
+                "operationId": "invite",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MeetingInviteCreationRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MeetingInviteCreationResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/meeting/accept": {
+            "post": {
+                "tags": [
+                    "meetings-controller"
+                ],
+                "operationId": "accept",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MeetingInviteAcceptanceRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MeetingInviteAcceptanceResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/__reset": {
+            "post": {
+                "tags": [
+                    "mock-only"
+                ],
+                "summary": "Not an operation of quick-meetings. The mock's out-of-band reset, the counterpart of reset-sut.sh's database truncate.",
+                "operationId": "resetWorld",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "UserCreationResponse": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                }
+            },
+            "MeetingCreationRequest": {
+                "type": "object",
+                "properties": {
+                    "userId": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "duration": {
+                        "$ref": "#/components/schemas/MeetingDuration"
+                    },
+                    "timezone": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "duration",
+                    "name",
+                    "timezone"
+                ]
+            },
+            "MeetingDuration": {
+                "type": "object",
+                "properties": {
+                    "from": {
+                        "$ref": "#/components/schemas/MeetingTime"
+                    },
+                    "to": {
+                        "$ref": "#/components/schemas/MeetingTime"
+                    }
+                },
+                "required": [
+                    "from",
+                    "to"
+                ]
+            },
+            "MeetingTime": {
+                "type": "object",
+                "properties": {
+                    "date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "time": {
+                        "type": "string",
+                        "example": "14:30:00"
+                    }
+                },
+                "required": [
+                    "date",
+                    "time"
+                ]
+            },
+            "MeetingCreationResponse": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                }
+            },
+            "MeetingRejectionRequest": {
+                "type": "object",
+                "properties": {
+                    "meetingId": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "userId": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                }
+            },
+            "MeetingRejectionResponse": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string"
+                    }
+                }
+            },
+            "MeetingInviteCreationRequest": {
+                "type": "object",
+                "properties": {
+                    "meetingId": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "invitees": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                }
+            },
+            "MeetingInviteCreationResponse": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string"
+                    }
+                }
+            },
+            "MeetingInviteAcceptanceRequest": {
+                "type": "object",
+                "properties": {
+                    "meetingId": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "userId": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                }
+            },
+            "MeetingInviteAcceptanceResponse": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    }
+}

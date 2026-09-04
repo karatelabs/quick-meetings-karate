@@ -1,9 +1,9 @@
 # verify.yml — the parity proof, re-run on every push.
 #
 # One job per branch: main and the five defect branches. Each stands the app up against a real
-# Postgres, points the engine at it, runs the deck, contract, walk and sequence lanes, and asserts
-# the finding that branch is expected to produce (karate/expected.json). A branch whose finding
-# changes fails here — that is the whole point.
+# Postgres, points the engine at it, runs the deck, contract, walk, sequence and mutation lanes, and
+# asserts the finding that branch is expected to produce (karate/expected.json). A branch whose
+# finding changes fails here — that is the whole point.
 #
 # One-time setup: a repository secret KARATE_LICENSE holding the inline karate.lic text. The engine
 # jar is never committed; it is extracted from the pinned GHCR image by karate/engine.sh.
@@ -101,6 +101,12 @@ jobs:
         run: karate/serve.sh up
         env:
           KARATE_LICENSE_TEXT: ${{ secrets.KARATE_LICENSE }}
+
+      # the mutation lane needs no app and no database — Twin.mutate serves each mutant of
+      # mock/handlers.js from memory. It runs on its own so the counts are visible in the log;
+      # verify.sh runs it again and asserts them against expected.json.
+      - name: Mutation adequacy of the pinned sequences
+        run: karate/mutate.sh
 
       - name: Every lane, against the expected finding for this branch
         run: karate/verify.sh ${{ matrix.branch }}

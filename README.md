@@ -96,9 +96,11 @@ asset, then the container image `ghcr.io/karatelabs/karate-agent`. The version i
 
 ## Step 1: run everything against the mock
 
-You do not need the app for this step. The rulebook is also the mock. `karate/mock/quick-meetings.js`
-serves the same five endpoints as the app. For every booking decision it calls
-`Rule.execute('meetings', ...)`. It holds no copy of the rules, so it cannot disagree with them.
+You do not need the app for this step. The rulebook is also the mock. `karate/mock/handlers.js`
+serves the same five operations as the app, over the app's own OpenAPI spec. For every booking
+decision it calls `Rule.execute('meetings', ...)`. It holds no copy of the rules, so it cannot
+disagree with them. `Twin.mutate` starts that same file in memory, so what the lanes exercise is
+what the mutants are graded against.
 
 ```bash
 cd karate
@@ -129,6 +131,15 @@ walkFrontier            0
 walkCounterexamples     0
 walkTransitionPairs     7/602
 walkTransitionPairGaps  595
+mutateCatalog           77
+mutateGraded            77
+mutateExcluded          0
+mutateNotRun            0
+mutateTimeouts          0
+mutateSequences         ['seq-clean-two-meetings K4 S5 N47 SC20 I1 T0 den9 deck0.4444 order0.4444 raw0.4444', 'seq-containment-refused K16 S0 N47 SC13 I1 T0 den16 deck1 order1 raw1', 'seq-during-refused K16 S0 N47 SC13 I1 T0 den16 deck1 order1 raw1', 'seq-touching-refused K16 S0 N47 SC13 I1 T0 den16 deck1 order1 raw1', 'seq-overlap-refused K16 S0 N47 SC13 I1 T0 den16 deck1 order1 raw1', 'seq-invite-conflict-refused K30 S0 N32 SC14 I1 T0 den30 deck1 order1 raw1', 'seq-accept-would-overlap K37 S0 N20 SC19 I1 T0 den37 deck1 order1 raw1', 'seq-owner-cannot-reject K6 S8 N40 SC22 I1 T0 den14 deck0.4286 order0.4286 raw0.4286', 'seq-accept-clean K26 S1 N25 SC24 I1 T0 den27 deck0.963 order0.963 raw0.963', 'seq-reject-invite K27 S1 N26 SC22 I1 T0 den28 deck0.9643 order0.9643 raw0.9643']
+mutateCheckedByAny      48
+mutateKilledByAny       48
+mutateWorklist          []
 
 main: every expectation met
 ```
@@ -160,7 +171,8 @@ Each script runs one lane:
 | `./contract.sh` | Sends 168 probes: every path, with every `Accept` header, with each of eight malformed bodies. Each response must be JSON and must not be a 5xx. |
 | `./live.sh` | Replays the ten sequences through the API. Resets the database before each one. Shrinks any sequence that fails. |
 | `./walk.sh` | Explores the twin: states, transitions, transition pairs, refused actions and invariants. |
-| `./verify.sh` | Runs all four lanes and checks the numbers against this branch's row in `expected.json`. |
+| `./mutate.sh` | Grades the pinned sequences against mutants of the mock's guards. Touches no app. |
+| `./verify.sh` | Runs all five lanes and checks the numbers against this branch's row in `expected.json`. |
 | `./jqwik-check.sh` | Runs the author's tests. On `main` the whole suite must pass. On a demo branch the tagged test must fail, and nothing else may break. It reads the surefire XML report to decide. |
 
 ### The declared domain
@@ -224,6 +236,71 @@ read it — it is the worklist. Each gap carries a shortest witness, and pinning
 Rule.sequence.create('meetings', { steps: row.candidate.steps })
 ```
 
+### Mutation: would the sequences notice the mock breaking?
+
+Every number above says the suite agrees with the model. None of them says the suite would
+*disagree* if the code changed. `./mutate.sh` asks that. `Twin.mutate` spells first-order mutants
+over the guards in `mock/handlers.js` - negate a condition, move a boundary by one, remove an arm,
+inline a constant - serves each one from memory, and replays a pinned sequence against it. A mutant
+that a sequence turns from pass to fail is **killed**. One that survives names a change nothing in
+the deck would notice.
+
+The catalog is **77 mutants**. **48** of them some sequence puts a verdict on, and **all 48 are
+killed**. The worklist is empty. The other 29 are never distinguished: one is `INVALID`, and the rest
+are either unreached by any sequence or return the same bytes as the original.
+
+| Sequence | Killed of denominator | Not covered | Screened |
+| --- | --- | --- | --- |
+| `seq-clean-two-meetings` | 4 of 9 | 47 | 20 |
+| `seq-containment-refused` | 16 of 16 | 47 | 13 |
+| `seq-during-refused` | 16 of 16 | 47 | 13 |
+| `seq-touching-refused` | 16 of 16 | 47 | 13 |
+| `seq-overlap-refused` | 16 of 16 | 47 | 13 |
+| `seq-invite-conflict-refused` | 30 of 30 | 32 | 14 |
+| `seq-accept-would-overlap` | 37 of 37 | 20 | 19 |
+| `seq-owner-cannot-reject` | 6 of 14 | 40 | 22 |
+| `seq-accept-clean` | 26 of 27 | 25 | 24 |
+| `seq-reject-invite` | 27 of 28 | 26 | 22 |
+
+The denominator is killed plus survived, and nothing else. `NOTCOVERED`, `SCREENED`, `INVALID` and
+`TIMEOUT` sit outside it, so they can neither flatter a rate nor cap it. The rows are not added up.
+The only thing read across them is set membership: 48 mutants got a verdict somewhere, 48 were
+killed somewhere, none survived everywhere.
+
+`deckKillRate`, `orderKillRate` and `rawKillRate` are meant to be two different readings that are
+never blended - the independent one, and the inclusive one. Here they are equal on every row, and
+that is worth saying rather than showing three identical columns. The split is defined by whether a
+kill moved a field named `premium`, which is the shared-oracle guard for a pricing domain. A meeting
+has no premium, so every kill here counts as independent and the pair carries no information in this
+kit.
+
+**Seven bounds on what these numbers mean.**
+
+1. *The read-back window.* A kill is only visible in what the sequence reads back - here a status
+   code and a message. A mutant that changes something neither one shows cannot be killed.
+2. *A hit is not a kill opportunity.* Reaching the mutated line is necessary, not sufficient; the
+   change still has to reach the wire.
+3. *Per-batch isolation.* The engine starts a fresh mock per batch and replays a batch's sequences
+   back to back with no reset between them. Every sequence here starts from an empty calendar, so
+   the batch is one sequence, and the deck is graded ten times rather than once.
+4. *A syntactic frame.* The catalog is an enumeration of source edits, not a sample of the faults a
+   real change would introduce. 77 is the size of that enumeration and nothing more.
+5. *First order, operator biased.* One edit at a time, from four operators. A fault that needs two
+   simultaneous changes is not in the population.
+6. *A shared oracle.* The mock decides through the same rulebook that grades it. So a mutant in a
+   *booking decision* is a mutant in one caller of the oracle, not in the oracle - these numbers
+   grade the lifecycle wiring, never the booking rules.
+7. *`SCREENED` is observational equivalence, not correctness.* A screened mutant produced the same
+   bytes as the original on the sequences run. It is undetectable here, not harmless.
+
+The honest reading beside jqwik: the article's argument is volume. Generate action chains at random,
+a fresh seed each run, enough of them that a bad order eventually turns up. That argument buys reach
+this one does not - a random chain can compose actions no author thought to write down, which is
+exactly point 3's cost. What it does not buy is a bound. It cannot tell you which changes to the code
+its tests would fail to notice, because it has no enumeration to measure against. Ten fixed sequences
+and 77 enumerated mutants can, over a small, stated frame. Neither result contains the other, and
+adding them together would be the mistake.
+
 The API has no reset endpoint. So `live.sh` gives the engine a reset command,
 `reset: {command: ['./reset-sut.sh']}`, and the engine runs it before each sequence. If the reset
 fails, the sequence is marked `INVALID`. It is not counted as a finding about the app.
@@ -263,6 +340,15 @@ walkFrontier            0
 walkCounterexamples     0
 walkTransitionPairs     7/602
 walkTransitionPairGaps  595
+mutateCatalog           77
+mutateGraded            77
+mutateExcluded          0
+mutateNotRun            0
+mutateTimeouts          0
+mutateSequences         ['seq-clean-two-meetings K4 S5 N47 SC20 I1 T0 den9 deck0.4444 order0.4444 raw0.4444', 'seq-containment-refused K16 S0 N47 SC13 I1 T0 den16 deck1 order1 raw1', 'seq-during-refused K16 S0 N47 SC13 I1 T0 den16 deck1 order1 raw1', 'seq-touching-refused K16 S0 N47 SC13 I1 T0 den16 deck1 order1 raw1', 'seq-overlap-refused K16 S0 N47 SC13 I1 T0 den16 deck1 order1 raw1', 'seq-invite-conflict-refused K30 S0 N32 SC14 I1 T0 den30 deck1 order1 raw1', 'seq-accept-would-overlap K37 S0 N20 SC19 I1 T0 den37 deck1 order1 raw1', 'seq-owner-cannot-reject K6 S8 N40 SC22 I1 T0 den14 deck0.4286 order0.4286 raw0.4286', 'seq-accept-clean K26 S1 N25 SC24 I1 T0 den27 deck0.963 order0.963 raw0.963', 'seq-reject-invite K27 S1 N26 SC22 I1 T0 den28 deck0.9643 order0.9643 raw0.9643']
+mutateCheckedByAny      48
+mutateKilledByAny       48
+mutateWorklist          []
 shrinkSteps             2
 shrinkVerified          CONFIRMED
 
@@ -329,14 +415,15 @@ karate/
   checks/
     deck-live.js     sends the deck through the API and compares with calc.js
     contract-live.js the 168 probes
-    zones.js         wall-clock and instant arithmetic, shared by the checks and the mock
-  mock/quick-meetings.js   the mock that answers from the rulebook
-  deck.json          the 574 rows, built by the engine
+    zones.js         reads the wall-clock and instant arithmetic back out of the mock
+  mock/handlers.js   the mock that answers from the rulebook, and the guards Twin.mutate mutates
+  openapi.yaml       the app's own spec, as served by /v3/api-docs, plus the mock-only /__reset
+  deck.json          the deck rows, built by cut-deck.sh
   required.json      the states, transitions and rejections the twin must cover
   expected.json      the result each branch must produce
   engine.version     the engine version, read by every script and the CI workflow
-  *.sh               engine, serve, ka, app, mock, reset, drive, contract, live, walk,
-                     verify, jqwik-check, switch-sut
+  *.sh               engine, serve, ka, app, mock, reset, drive, contract, live, walk, mutate,
+                     verify, cut-deck, jqwik-check, switch-sut
 ```
 
 ## A note on intervals

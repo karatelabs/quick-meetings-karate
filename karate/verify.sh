@@ -10,11 +10,13 @@ DECK="$(./drive.sh)"
 CONTRACT="$(./contract.sh)"
 LIVE="$(./live.sh "$AGAINST")"
 WALK="$(./walk.sh)"
+MUTATE="$(./mutate.sh)"
 
-DECK="$DECK" CONTRACT="$CONTRACT" LIVE="$LIVE" WALK="$WALK" BR="$BR" python3 - <<'PY'
+DECK="$DECK" CONTRACT="$CONTRACT" LIVE="$LIVE" WALK="$WALK" MUTATE="$MUTATE" BR="$BR" python3 - <<'PY'
 import json, os, sys
 
-deck, contract, live, walk = (json.loads(os.environ[n]) for n in ('DECK', 'CONTRACT', 'LIVE', 'WALK'))
+deck, contract, live, walk, mutate = (json.loads(os.environ[n])
+                                      for n in ('DECK', 'CONTRACT', 'LIVE', 'WALK', 'MUTATE'))
 br = os.environ['BR']
 want = json.load(open('expected.json'))
 if br not in want:
@@ -43,6 +45,15 @@ got = {
     'walkCounterexamples': walk['counterexamples'],
     'walkTransitionPairs': walk['transitionPairs'],
     'walkTransitionPairGaps': walk['transitionPairGaps'],
+    'mutateCatalog': mutate['catalog'],
+    'mutateGraded': mutate['graded'],
+    'mutateExcluded': mutate['excluded'],
+    'mutateNotRun': mutate['notRun'],
+    'mutateTimeouts': mutate['timeouts'],
+    'mutateSequences': mutate['sequences'],
+    'mutateCheckedByAny': mutate['checkedByAny'],
+    'mutateKilledByAny': mutate['killedByAny'],
+    'mutateWorklist': mutate['worklist'],
 }
 shrink = {s['id']: s['shrink'] for s in live['sequences'] if s.get('shrink')}
 if 'shrinkSteps' in want:
