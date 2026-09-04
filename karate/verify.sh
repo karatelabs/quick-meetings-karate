@@ -39,6 +39,8 @@ got = {
     'walkCeiling': walk['ceiling'],
     'walkFrontier': walk['frontier'],
     'walkCounterexamples': walk['counterexamples'],
+    'walkTransitionPairs': walk['transitionPairs'],
+    'walkTransitionPairGaps': walk['transitionPairGaps'],
 }
 shrink = {s['id']: s['shrink'] for s in live['sequences'] if s.get('shrink')}
 if 'shrinkSteps' in want:

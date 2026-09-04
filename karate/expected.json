@@ -16,7 +16,9 @@
     "walkInvariantsFailed": 0,
     "walkCeiling": "exhausted",
     "walkFrontier": 0,
-    "walkCounterexamples": 0
+    "walkCounterexamples": 0,
+    "walkTransitionPairs": "7/602",
+    "walkTransitionPairGaps": 595
   },
   "demo-1-server-never-returns-5xx": {
     "deckRows": 574,
@@ -36,6 +38,8 @@
     "walkCeiling": "exhausted",
     "walkFrontier": 0,
     "walkCounterexamples": 0,
+    "walkTransitionPairs": "7/602",
+    "walkTransitionPairGaps": 595,
     "jqwikProperty": "me.mourjo.quickmeetings.generativetests.RequestResponseGenTests#responsesAreAlwaysValidJson",
     "jqwikErrorType": "com.fasterxml.jackson.core.JsonParseException"
   },
@@ -57,6 +61,8 @@
     "walkCeiling": "exhausted",
     "walkFrontier": 0,
     "walkCounterexamples": 0,
+    "walkTransitionPairs": "7/602",
+    "walkTransitionPairGaps": 595,
     "jqwikProperty": "me.mourjo.quickmeetings.generativetests.MeetingCreationGenTests#validMeetingRangeShouldReturn2xx"
   },
   "demo-3-meeting-creation-scenarios": {
@@ -81,6 +87,8 @@
     "walkCeiling": "exhausted",
     "walkFrontier": 0,
     "walkCounterexamples": 0,
+    "walkTransitionPairs": "7/602",
+    "walkTransitionPairGaps": 595,
     "jqwikProperty": "me.mourjo.quickmeetings.generativetests.OverlappingMeetingsGenTest#overlappingMeetingsCannotBeCreated"
   },
   "demo-4-meeting-acceptations": {
@@ -105,6 +113,8 @@
     "walkCeiling": "exhausted",
     "walkFrontier": 0,
     "walkCounterexamples": 0,
+    "walkTransitionPairs": "7/602",
+    "walkTransitionPairGaps": 595,
     "jqwikProperty": "me.mourjo.quickmeetings.generativetests.OperationsGenTests#noOperationCausesAnOverlap"
   },
   "demo-5-empty-meetings": {
@@ -129,6 +139,8 @@
     "walkCeiling": "exhausted",
     "walkFrontier": 0,
     "walkCounterexamples": 0,
+    "walkTransitionPairs": "7/602",
+    "walkTransitionPairGaps": 595,
     "jqwikProperty": "me.mourjo.quickmeetings.generativetests.OperationsGenTests#noOperationCausesEmptyMeetings"
   }
 }

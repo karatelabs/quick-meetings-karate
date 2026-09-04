@@ -108,23 +108,25 @@ cd karate
 ```
 
 ```
-deckRows              574
-deckDiverged          0
-deckReasonOnly        0
-deckSetupFailed       0
-deckAccounted         True
-contractProbes        168
-contractViolations    0
-livePass              10
-liveFail              0
-liveFailing           []
-walkStates            5/5
-walkTransitions       17/17
-walkRefusals          3086
-walkInvariantsFailed  0
-walkCeiling           exhausted
-walkFrontier          0
-walkCounterexamples   0
+deckRows                574
+deckDiverged            0
+deckReasonOnly          0
+deckSetupFailed         0
+deckAccounted           True
+contractProbes          168
+contractViolations      0
+livePass                10
+liveFail                0
+liveFailing             []
+walkStates              5/5
+walkTransitions         17/17
+walkRefusals            3086
+walkInvariantsFailed    0
+walkCeiling             exhausted
+walkFrontier            0
+walkCounterexamples     0
+walkTransitionPairs     7/602
+walkTransitionPairGaps  595
 
 main: every expectation met
 ```
@@ -155,7 +157,7 @@ Each script runs one lane:
 | `./drive.sh` | Sends 574 rows through the API. The rows come from saved scenarios, boundary values and pairwise combinations. `calc.js` computes the expected answer for each row. |
 | `./contract.sh` | Sends 168 probes: every path, with every `Accept` header, with each of eight malformed bodies. Each response must be JSON and must not be a 5xx. |
 | `./live.sh` | Replays the ten sequences through the API. Resets the database before each one. Shrinks any sequence that fails. |
-| `./walk.sh` | Explores the twin: states, transitions, refused actions and invariants. |
+| `./walk.sh` | Explores the twin: states, transitions, transition pairs, refused actions and invariants. |
 | `./verify.sh` | Runs all four lanes and checks the numbers against this branch's row in `expected.json`. |
 | `./jqwik-check.sh` | Runs the author's tests. On `main` the whole suite must pass. On a demo branch the tagged test must fail, and nothing else may break. It reads the surefire XML report to decide. |
 
@@ -165,6 +167,21 @@ invariants 438 times with no failure. It stops because there is nothing left to 
 it hit a limit. The ten sequences in `rulebooks/meetings/sequences.json` were written against this
 walk, one for each required transition and rejection in `required.json`. Every run replays the same
 ten.
+
+The walk also reports **transition pairs: 7 of 602**, and 595 gaps. A pair is one transition followed
+by another, in that order, from the same world. Reaching every transition once says nothing about
+what happens after it; a pair says the second one was reached *with the first already applied*. That
+is where the last two bugs live, and it is the coverage the deck cannot buy at any number of rows.
+
+The denominator is the walk's, not a guess. 602 is the number of ordered pairs the walk actually
+composed, so every one of them is known to be feasible. Counting 17 transitions two deep would give
+289, which includes pairs no world admits, and squaring the wrong thing is how a made-up denominator
+flatters a low number. The ten pinned sequences cover 7. The gap list is not a failure — CI does not
+read it — it is the worklist. Each gap carries a shortest witness, and pinning one is one call:
+
+```js
+Rule.sequence.create('meetings', { steps: row.candidate.steps })
+```
 
 The API has no reset endpoint. So `live.sh` gives the engine a reset command,
 `reset: {command: ['./reset-sut.sh']}`, and the engine runs it before each sequence. If the reset
@@ -184,25 +201,27 @@ demo-3-meeting-creation-scenarios: me.mourjo.quickmeetings.generativetests.Overl
 ```
 
 ```
-deckRows              574
-deckDiverged          1
-deckReasonOnly        0
-deckSetupFailed       0
-deckAccounted         True
-contractProbes        168
-contractViolations    0
-livePass              9
-liveFail              1
-liveFailing           ['seq-containment-refused']
-walkStates            5/5
-walkTransitions       17/17
-walkRefusals          3086
-walkInvariantsFailed  0
-walkCeiling           exhausted
-walkFrontier          0
-walkCounterexamples   0
-shrinkSteps           2
-shrinkVerified        CONFIRMED
+deckRows                574
+deckDiverged            1
+deckReasonOnly          0
+deckSetupFailed         0
+deckAccounted           True
+contractProbes          168
+contractViolations      0
+livePass                9
+liveFail                1
+liveFailing             ['seq-containment-refused']
+walkStates              5/5
+walkTransitions         17/17
+walkRefusals            3086
+walkInvariantsFailed    0
+walkCeiling             exhausted
+walkFrontier            0
+walkCounterexamples     0
+walkTransitionPairs     7/602
+walkTransitionPairGaps  595
+shrinkSteps             2
+shrinkVerified          CONFIRMED
 
 demo-3-meeting-creation-scenarios: every expectation met
 ```
