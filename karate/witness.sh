@@ -5,6 +5,8 @@
 # uncovered, every refusal class — each with its own reset, so the denominators are the walk's own.
 # A scope guard rides scope[] and owes no witness: no request can put the system in the world it
 # rejects.
+# plan.json is walk.sh's plan, and Twin.witness is given it too. Without it this lane walks the
+# unplanned model, and the two lanes print two denominators for what is meant to be one walk.
 set -euo pipefail
 cd "$(dirname "$0")"
 AGAINST="${1:-live}"
@@ -16,8 +18,9 @@ esac
 # thousands of sequences in one call, past ka.sh's own default
 export KA_TIMEOUT="${KA_TIMEOUT:-3600}"
 ./ka.sh "
+var PLAN = JSON.parse(File.read('plan.json'));
 var r = Twin.witness('meetings', {baseUrl: '${QM_URL:-http://localhost:9981}', against: '$AGAINST',
-                                  reset: {command: ['$RESET']}, timeoutMs: 10000});
+                                  plan: PLAN, reset: {command: ['$RESET']}, timeoutMs: 10000});
 ({transitions: r.transitions, pairs: r.pairs,
   refusals: {witnessed: r.refusals.witnessed, compatible: r.refusals.compatible,
              missed: r.refusals.missed, refuted: r.refusals.refuted, blocked: r.refusals.blocked,

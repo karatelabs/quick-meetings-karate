@@ -30,7 +30,7 @@ Here the same five bugs are found by two things an LLM wrote:
 - A **twin**: the meeting lifecycle as a state model. It knows which actions are allowed in each state.
 
 Both are deterministic. The rulebook drives a fixed deck of 974 rows. The twin replays ten fixed
-sequences of actions, and a witness lane replays the 1726 obligations its own walk owes. Every run
+sequences of actions, and a witness lane replays the 941 obligations its own walk owes. Every run
 gives the same result, and every finding reproduces on the first try.
 
 To be fair to jqwik: it can shrink a failing chain of actions that nobody planned for. Our sequences
@@ -134,8 +134,8 @@ walkFrontier            0
 walkCounterexamples     0
 walkTransitionPairs     7/500
 walkTransitionPairGaps  493
-witnessTransitions      970/970
-witnessPairs            746/746
+witnessTransitions      438/438
+witnessPairs            493/493
 witnessRefusals         10/10
 witnessRefuted          0
 witnessBlocked          0
@@ -178,8 +178,8 @@ Each script runs one lane:
 | `./drive.sh` | Sends 974 rows through the API. The rows come from saved scenarios, boundary values and pairwise combinations. `calc.js` computes the expected answer for each row. Also reads the declared input domain over the deck. |
 | `./contract.sh` | Sends 168 probes: every path, with every `Accept` header, with each of eight malformed bodies. Each response must be JSON and must not be a 5xx. |
 | `./live.sh` | Replays the ten sequences through the API. Resets the database before each one. Shrinks any sequence that fails. |
-| `./walk.sh` | Explores the twin: states, transitions, transition pairs, refused actions and invariants. |
-| `./witness.sh` | Replays the walk's own witnesses through the API: one sequence per landed transition, per transition pair the deck leaves uncovered, and per refusal class. Resets the database before each one. |
+| `./walk.sh` | Explores the twin under `plan.json`: states, transitions, transition pairs, refused actions and invariants. |
+| `./witness.sh` | Replays the walk's own witnesses through the API, under the same `plan.json`: one sequence per landed transition, per transition pair the deck leaves uncovered, and per refusal class. Resets the database before each one. |
 | `./mutate.sh` | Grades the pinned sequences against mutants of the mock's guards. Touches no app. |
 | `./verify.sh` | Runs all six lanes and checks the numbers against this branch's row in `expected.json`. |
 | `./jqwik-check.sh` | Runs the author's tests. On `main` the whole suite must pass. On a demo branch the tagged test must fail, and nothing else may break. It reads the surefire XML report to decide. |
@@ -404,8 +404,8 @@ walkFrontier            0
 walkCounterexamples     0
 walkTransitionPairs     7/500
 walkTransitionPairGaps  493
-witnessTransitions      970/970
-witnessPairs            746/746
+witnessTransitions      438/438
+witnessPairs            493/493
 witnessRefusals         10/10
 witnessRefuted          0
 witnessBlocked          0
@@ -432,7 +432,7 @@ find what `expected.json` says they must. If a bug stops reproducing, both check
 
 Measured with engine `2.1.3.RC3`, from an empty database, with the scripts above.
 
-| Branch | Deck (974 rows) | Reason only | Contract (168 probes) | Sequences (10) | Shrink | Witness (1726 obligations) |
+| Branch | Deck (974 rows) | Reason only | Contract (168 probes) | Sequences (10) | Shrink | Witness (941 obligations) |
 | --- | --- | --- | --- | --- | --- | --- |
 | `main` | 0 differ | 0 | 0 violations | 10 pass | none | all confirmed |
 | `demo-1-server-never-returns-5xx` | 0 differ | 0 | **60 violations** | 10 pass | none | all confirmed |
@@ -448,10 +448,12 @@ row. Which bug each branch's deck catches did not change; only how many rows cat
 The walk, the mutation lane and the declared-domain rollup all read the rulebook and the model only,
 so their numbers are the same on every branch.
 
-The witness lane is the walk replayed. The walk's numbers are statements about the model: 970 landed
-transitions and 746 transition pairs the ten pinned sequences do not reach. The witness lane sends
-each of them, and the ten refusal classes, through the API as its own sequence with its own reset,
-and reports which of them the app confirmed. On `main` all 1726 hold. On `demo-4` and `demo-5` one
+The witness lane is the walk replayed, and it is given the walk's own plan (`plan.json`), so both
+lanes count one population. The walk's numbers are statements about the model: 438 landed
+transitions and 493 transition pairs the ten pinned sequences do not reach — the same 493 the walk
+reports as gaps, beside the 7 the deck covers. The witness lane sends each of them, and the ten
+refusal classes, through the API as its own sequence with its own reset,
+and reports which of them the app confirmed. On `main` all 941 hold. On `demo-4` and `demo-5` one
 refusal class is refuted, and the witness that refutes it is two steps long: create a meeting, then
 have its owner accept it (`demo-4`, where the app stops seeing the overlap) or reject it (`demo-5`,
 where the app lets them).
@@ -508,6 +510,8 @@ karate/
   mock/handlers.js   the mock that answers from the rulebook, and the guards Twin.mutate mutates
   openapi.yaml       the app's own spec, as served by /v3/api-docs, plus the mock-only /__reset
   deck.json          the deck rows, built by cut-deck.sh
+  plan.json          the walk's plan: its depth and its argument levels. walk.sh and witness.sh
+                     both read it, so the two lanes state one denominator
   required.json      the states, transitions and rejections the twin must cover
   expected.json      the result each branch must produce
   engine.version     the engine version, read by every script and the CI workflow

@@ -2,12 +2,12 @@
 # walk.sh — the bounded walk over the twin: states, transitions, guard refusals, invariants,
 # and whether the frontier was exhausted rather than cut off by a ceiling. Twin.check grades the
 # pinned sequences over the same walk, so the transition-pair denominator is the walk's own.
+# The plan lives in plan.json, not here: witness.sh replays this walk and must be given the same
+# plan, and a plan stated twice is two walks the moment one of them is edited.
 set -euo pipefail
 cd "$(dirname "$0")"
 ./ka.sh "
-var PLAN = {depth: {default: 3},
-            levels: {'create.slot': ['A','B','D','E'], 'invite.user': [1,3],
-                     'accept.user': [1,3], 'reject.user': [1,3]}};
+var PLAN = JSON.parse(File.read('plan.json'));
 var r = Twin.explore('meetings', {plan: PLAN});
 var c = Twin.check('meetings', {plan: PLAN});
 ({states: r.states.reached.length + '/' + (r.states.reached.length + r.states.notReached.length),
