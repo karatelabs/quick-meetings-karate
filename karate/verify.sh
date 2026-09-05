@@ -14,19 +14,27 @@ DECK="$(./drive.sh)"
 CONTRACT="$(./contract.sh)"
 LIVE="$(./live.sh "$AGAINST")"
 WALK="$(./walk.sh)"
+WITNESS="$(./witness.sh "$AGAINST")"
 MUTATE="$(./mutate.sh)"
 
-DECK="$DECK" CONTRACT="$CONTRACT" LIVE="$LIVE" WALK="$WALK" MUTATE="$MUTATE" BR="$BR" \
-ENGINE="$ENGINE" python3 - <<'PY'
+DECK="$DECK" CONTRACT="$CONTRACT" LIVE="$LIVE" WALK="$WALK" WITNESS="$WITNESS" MUTATE="$MUTATE" \
+BR="$BR" ENGINE="$ENGINE" python3 - <<'PY'
 import json, os, sys
 
-deck, contract, live, walk, mutate = (json.loads(os.environ[n])
-                                      for n in ('DECK', 'CONTRACT', 'LIVE', 'WALK', 'MUTATE'))
+deck, contract, live, walk, witness, mutate = (json.loads(os.environ[n])
+                                               for n in ('DECK', 'CONTRACT', 'LIVE', 'WALK',
+                                                         'WITNESS', 'MUTATE'))
 br = os.environ['BR']
 want = json.load(open('expected.json'))
 if br not in want:
     sys.exit('no expectation for branch ' + br)
 want = want[br]
+
+# a witness population reads as witnessed-of-owed; refuted and blocked are summed across the three,
+# so a single asserted number says whether any obligation went ungraded
+POPULATIONS = ('transitions', 'pairs', 'refusals')
+def fold(p):
+    return '%s/%s' % (p['witnessed'], p['of'])
 
 got = {
     'deckRows': deck['rows'],
@@ -50,6 +58,11 @@ got = {
     'walkCounterexamples': walk['counterexamples'],
     'walkTransitionPairs': walk['transitionPairs'],
     'walkTransitionPairGaps': walk['transitionPairGaps'],
+    'witnessTransitions': fold(witness['transitions']),
+    'witnessPairs': fold(witness['pairs']),
+    'witnessRefusals': fold(witness['refusals']),
+    'witnessRefuted': sum(witness[p]['refuted'] for p in POPULATIONS),
+    'witnessBlocked': sum(witness[p]['blocked'] for p in POPULATIONS),
     'mutateCatalog': mutate['catalog'],
     'mutateGraded': mutate['graded'],
     'mutateExcluded': mutate['excluded'],
@@ -73,6 +86,12 @@ for k in got:
     flag = '  <-- expected %r' % (want[k],) if k in bad else ''
     print('%-*s  %s%s' % (width, k, got[k], flag))
 print('%-*s  %s' % (width, 'engine', os.environ.get('ENGINE') or 'unresolved'))
+# a witness number only says how many; the obligations behind it say which, and this is the only
+# place they reach the log
+for o in witness['notWitnessed'][:10]:
+    print('%-*s  %s %s %s' % (width, 'witness ' + o['credit'], o['kind'], o['key'], o['why']))
+if len(witness['notWitnessed']) > 10:
+    print('%-*s  %d more' % (width, 'witness', len(witness['notWitnessed']) - 10))
 if bad:
     sys.exit('\n%s: %d expectation(s) not met' % (br, len(bad)))
 print('\n%s: every expectation met' % br)

@@ -30,7 +30,8 @@ Here the same five bugs are found by two things an LLM wrote:
 - A **twin**: the meeting lifecycle as a state model. It knows which actions are allowed in each state.
 
 Both are deterministic. The rulebook drives a fixed deck of 974 rows. The twin replays ten fixed
-sequences of actions. Every run gives the same result, and every finding reproduces on the first try.
+sequences of actions, and a witness lane replays the 1726 obligations its own walk owes. Every run
+gives the same result, and every finding reproduces on the first try.
 
 To be fair to jqwik: it can shrink a failing chain of actions that nobody planned for. Our sequences
 are planned, so shrinking only confirms that they are already minimal. And random actions can reach
@@ -47,8 +48,8 @@ column names the lane that finds it and the result. All numbers are measured, se
 | The server does not always return valid JSON | `demo-1-server-never-returns-5xx` | `RequestResponseGenTests.responsesAreAlwaysValidJson` | contract: **60 of 168** probes get a 5xx or a body that is not JSON |
 | A valid date range is rejected across a DST gap | `demo-2-invalid-date-range` | `MeetingCreationGenTests.validMeetingRangeShouldReturn2xx` | deck: **233 of 974** rows differ. 158 of them differ only in the refusal reason. Rule `QM-003/1` in `rulebooks/meetings/calc.js` |
 | The overlap SQL misses one meeting inside another | `demo-3-meeting-creation-scenarios` | `OverlappingMeetingsGenTest.overlappingMeetingsCannotBeCreated` | deck: **1 of 974** rows differs, the `contains` case. Rule `QM-002/1` in `calc.js`. Sequence `seq-containment-refused` fails |
-| Accepting an invitation double-books a person | `demo-4-meeting-acceptations` | `OperationsGenTests.noOperationCausesAnOverlap` | sequence `seq-accept-would-overlap` fails at step 3. Rule `QM-006/1` in `rulebooks/meetings/twin.js` |
-| An owner can reject their own meeting and empty it | `demo-5-empty-meetings` | `OperationsGenTests.noOperationCausesEmptyMeetings` | sequence `seq-owner-cannot-reject` fails at step 1. Rule `QM-007/1` in `twin.js` |
+| Accepting an invitation double-books a person | `demo-4-meeting-acceptations` | `OperationsGenTests.noOperationCausesAnOverlap` | sequence `seq-accept-would-overlap` fails at step 3, and the witness lane refutes one refusal class. Rule `QM-006/1` in `rulebooks/meetings/twin.js` |
+| An owner can reject their own meeting and empty it | `demo-5-empty-meetings` | `OperationsGenTests.noOperationCausesEmptyMeetings` | sequence `seq-owner-cannot-reject` fails at step 1, and the witness lane refutes one refusal class. Rule `QM-007/1` in `twin.js` |
 
 Two things are worth a look.
 
@@ -125,22 +126,27 @@ livePass                10
 liveFail                0
 liveFailing             []
 walkStates              5/5
-walkTransitions         17/17
-walkRefusals            3086
+walkTransitions         15/15
+walkRefusals            3278
 walkInvariantsFailed    0
 walkCeiling             exhausted
 walkFrontier            0
 walkCounterexamples     0
-walkTransitionPairs     7/602
-walkTransitionPairGaps  595
-mutateCatalog           77
-mutateGraded            77
+walkTransitionPairs     7/500
+walkTransitionPairGaps  493
+witnessTransitions      970/970
+witnessPairs            746/746
+witnessRefusals         10/10
+witnessRefuted          0
+witnessBlocked          0
+mutateCatalog           71
+mutateGraded            71
 mutateExcluded          0
 mutateNotRun            0
 mutateTimeouts          0
-mutateSequences         ['seq-clean-two-meetings K4 S5 N55 SC12 I1 T0 den9 deck0.4444 order0.4444 raw0.4444', 'seq-containment-refused K16 S0 N55 SC5 I1 T0 den16 deck1 order1 raw1', 'seq-during-refused K16 S0 N55 SC5 I1 T0 den16 deck1 order1 raw1', 'seq-touching-refused K16 S0 N55 SC5 I1 T0 den16 deck1 order1 raw1', 'seq-overlap-refused K16 S0 N55 SC5 I1 T0 den16 deck1 order1 raw1', 'seq-invite-conflict-refused K30 S0 N33 SC13 I1 T0 den30 deck1 order1 raw1', 'seq-accept-would-overlap K37 S0 N20 SC19 I1 T0 den37 deck1 order1 raw1', 'seq-owner-cannot-reject K6 S8 N46 SC16 I1 T0 den14 deck0.4286 order0.4286 raw0.4286', 'seq-accept-clean K26 S1 N24 SC25 I1 T0 den27 deck0.963 order0.963 raw0.963', 'seq-reject-invite K27 S1 N26 SC22 I1 T0 den28 deck0.9643 order0.9643 raw0.9643']
-mutateCheckedByAny      48
-mutateKilledByAny       48
+mutateSequences         ['seq-clean-two-meetings K4 S5 N49 SC12 I1 T0 den9 deck0.4444 order0.4444 raw0.4444', 'seq-containment-refused K16 S0 N49 SC5 I1 T0 den16 deck1 order1 raw1', 'seq-during-refused K16 S0 N49 SC5 I1 T0 den16 deck1 order1 raw1', 'seq-touching-refused K16 S0 N49 SC5 I1 T0 den16 deck1 order1 raw1', 'seq-overlap-refused K16 S0 N49 SC5 I1 T0 den16 deck1 order1 raw1', 'seq-invite-conflict-refused K22 S0 N37 SC11 I1 T0 den22 deck1 order1 raw1', 'seq-accept-would-overlap K24 S0 N23 SC23 I1 T0 den24 deck1 order1 raw1', 'seq-owner-cannot-reject K6 S8 N40 SC16 I1 T0 den14 deck0.4286 order0.4286 raw0.4286', 'seq-accept-clean K26 S2 N22 SC20 I1 T0 den28 deck0.9286 order0.9286 raw0.9286', 'seq-reject-invite K26 S1 N24 SC19 I1 T0 den27 deck0.963 order0.963 raw0.963']
+mutateCheckedByAny      43
+mutateKilledByAny       43
 mutateWorklist          []
 
 main: every expectation met
@@ -173,8 +179,9 @@ Each script runs one lane:
 | `./contract.sh` | Sends 168 probes: every path, with every `Accept` header, with each of eight malformed bodies. Each response must be JSON and must not be a 5xx. |
 | `./live.sh` | Replays the ten sequences through the API. Resets the database before each one. Shrinks any sequence that fails. |
 | `./walk.sh` | Explores the twin: states, transitions, transition pairs, refused actions and invariants. |
+| `./witness.sh` | Replays the walk's own witnesses through the API: one sequence per landed transition, per transition pair the deck leaves uncovered, and per refusal class. Resets the database before each one. |
 | `./mutate.sh` | Grades the pinned sequences against mutants of the mock's guards. Touches no app. |
-| `./verify.sh` | Runs all five lanes and checks the numbers against this branch's row in `expected.json`. |
+| `./verify.sh` | Runs all six lanes and checks the numbers against this branch's row in `expected.json`. |
 | `./jqwik-check.sh` | Runs the author's tests. On `main` the whole suite must pass. On a demo branch the tagged test must fail, and nothing else may break. It reads the surefire XML report to decide. |
 
 ### How the deck is cut
@@ -299,29 +306,29 @@ inline a constant - serves each one from memory, and replays a pinned sequence a
 that a sequence turns from pass to fail is **killed**. One that survives names a change nothing in
 the deck would notice.
 
-The catalog is **77 mutants**. **48** of them some sequence puts a verdict on, and **all 48 are
-killed**. The worklist is empty. The other 29 are never distinguished: one is `INVALID`, and the rest
+The catalog is **71 mutants**. **43** of them some sequence puts a verdict on, and **all 43 are
+killed**. The worklist is empty. The other 28 are never distinguished: one is `INVALID`, and the rest
 are either unreached by any sequence or return the same bytes as the original.
 
 | Sequence | Killed of denominator | Not covered | Screened |
 | --- | --- | --- | --- |
-| `seq-clean-two-meetings` | 4 of 9 | 55 | 12 |
-| `seq-containment-refused` | 16 of 16 | 55 | 5 |
-| `seq-during-refused` | 16 of 16 | 55 | 5 |
-| `seq-touching-refused` | 16 of 16 | 55 | 5 |
-| `seq-overlap-refused` | 16 of 16 | 55 | 5 |
-| `seq-invite-conflict-refused` | 30 of 30 | 33 | 13 |
-| `seq-accept-would-overlap` | 37 of 37 | 20 | 19 |
-| `seq-owner-cannot-reject` | 6 of 14 | 46 | 16 |
-| `seq-accept-clean` | 26 of 27 | 24 | 25 |
-| `seq-reject-invite` | 27 of 28 | 26 | 22 |
+| `seq-clean-two-meetings` | 4 of 9 | 49 | 12 |
+| `seq-containment-refused` | 16 of 16 | 49 | 5 |
+| `seq-during-refused` | 16 of 16 | 49 | 5 |
+| `seq-touching-refused` | 16 of 16 | 49 | 5 |
+| `seq-overlap-refused` | 16 of 16 | 49 | 5 |
+| `seq-invite-conflict-refused` | 22 of 22 | 37 | 11 |
+| `seq-accept-would-overlap` | 24 of 24 | 23 | 23 |
+| `seq-owner-cannot-reject` | 6 of 14 | 40 | 16 |
+| `seq-accept-clean` | 26 of 28 | 22 | 20 |
+| `seq-reject-invite` | 26 of 27 | 24 | 19 |
 
 The denominator is killed plus survived, and nothing else. `NOTCOVERED`, `SCREENED`, `INVALID` and
 `TIMEOUT` sit outside it, so they can neither flatter a rate nor cap it. Read the last two columns as
 one number: their sum is fixed per sequence, and where the line between them falls has been seen to
 move with the state of the engine process, while the killed count and the denominator did not. Start
 the console fresh - CI does, one per job - and take the split as the softer of the numbers here. The rows are not added up.
-The only thing read across them is set membership: 48 mutants got a verdict somewhere, 48 were
+The only thing read across them is set membership: 43 mutants got a verdict somewhere, 43 were
 killed somewhere, none survived everywhere.
 
 `deckKillRate`, `orderKillRate` and `rawKillRate` are meant to be two different readings that are
@@ -341,7 +348,7 @@ kit.
    back to back with no reset between them. Every sequence here starts from an empty calendar, so
    the batch is one sequence, and the deck is graded ten times rather than once.
 4. *A syntactic frame.* The catalog is an enumeration of source edits, not a sample of the faults a
-   real change would introduce. 77 is the size of that enumeration and nothing more.
+   real change would introduce. 71 is the size of that enumeration and nothing more.
 5. *First order, operator biased.* One edit at a time, from four operators. A fault that needs two
    simultaneous changes is not in the population.
 6. *A shared oracle.* The mock decides through the same rulebook that grades it. So a mutant in a
@@ -355,7 +362,7 @@ a fresh seed each run, enough of them that a bad order eventually turns up. That
 this one does not - a random chain can compose actions no author thought to write down, which is
 exactly point 3's cost. What it does not buy is a bound. It cannot tell you which changes to the code
 its tests would fail to notice, because it has no enumeration to measure against. Ten fixed sequences
-and 77 enumerated mutants can, over a small, stated frame. Neither result contains the other, and
+and 71 enumerated mutants can, over a small, stated frame. Neither result contains the other, and
 adding them together would be the mistake.
 
 The API has no reset endpoint. So `live.sh` gives the engine a reset command,
@@ -389,22 +396,27 @@ livePass                9
 liveFail                1
 liveFailing             ['seq-containment-refused']
 walkStates              5/5
-walkTransitions         17/17
-walkRefusals            3086
+walkTransitions         15/15
+walkRefusals            3278
 walkInvariantsFailed    0
 walkCeiling             exhausted
 walkFrontier            0
 walkCounterexamples     0
-walkTransitionPairs     7/602
-walkTransitionPairGaps  595
-mutateCatalog           77
-mutateGraded            77
+walkTransitionPairs     7/500
+walkTransitionPairGaps  493
+witnessTransitions      970/970
+witnessPairs            746/746
+witnessRefusals         10/10
+witnessRefuted          0
+witnessBlocked          0
+mutateCatalog           71
+mutateGraded            71
 mutateExcluded          0
 mutateNotRun            0
 mutateTimeouts          0
-mutateSequences         ['seq-clean-two-meetings K4 S5 N55 SC12 I1 T0 den9 deck0.4444 order0.4444 raw0.4444', 'seq-containment-refused K16 S0 N55 SC5 I1 T0 den16 deck1 order1 raw1', 'seq-during-refused K16 S0 N55 SC5 I1 T0 den16 deck1 order1 raw1', 'seq-touching-refused K16 S0 N55 SC5 I1 T0 den16 deck1 order1 raw1', 'seq-overlap-refused K16 S0 N55 SC5 I1 T0 den16 deck1 order1 raw1', 'seq-invite-conflict-refused K30 S0 N33 SC13 I1 T0 den30 deck1 order1 raw1', 'seq-accept-would-overlap K37 S0 N20 SC19 I1 T0 den37 deck1 order1 raw1', 'seq-owner-cannot-reject K6 S8 N46 SC16 I1 T0 den14 deck0.4286 order0.4286 raw0.4286', 'seq-accept-clean K26 S1 N24 SC25 I1 T0 den27 deck0.963 order0.963 raw0.963', 'seq-reject-invite K27 S1 N26 SC22 I1 T0 den28 deck0.9643 order0.9643 raw0.9643']
-mutateCheckedByAny      48
-mutateKilledByAny       48
+mutateSequences         ['seq-clean-two-meetings K4 S5 N49 SC12 I1 T0 den9 deck0.4444 order0.4444 raw0.4444', 'seq-containment-refused K16 S0 N49 SC5 I1 T0 den16 deck1 order1 raw1', 'seq-during-refused K16 S0 N49 SC5 I1 T0 den16 deck1 order1 raw1', 'seq-touching-refused K16 S0 N49 SC5 I1 T0 den16 deck1 order1 raw1', 'seq-overlap-refused K16 S0 N49 SC5 I1 T0 den16 deck1 order1 raw1', 'seq-invite-conflict-refused K22 S0 N37 SC11 I1 T0 den22 deck1 order1 raw1', 'seq-accept-would-overlap K24 S0 N23 SC23 I1 T0 den24 deck1 order1 raw1', 'seq-owner-cannot-reject K6 S8 N40 SC16 I1 T0 den14 deck0.4286 order0.4286 raw0.4286', 'seq-accept-clean K26 S2 N22 SC20 I1 T0 den28 deck0.9286 order0.9286 raw0.9286', 'seq-reject-invite K26 S1 N24 SC19 I1 T0 den27 deck0.963 order0.963 raw0.963']
+mutateCheckedByAny      43
+mutateKilledByAny       43
 mutateWorklist          []
 shrinkSteps             2
 shrinkVerified          CONFIRMED
@@ -420,14 +432,14 @@ find what `expected.json` says they must. If a bug stops reproducing, both check
 
 Measured with engine `2.1.3.RC3`, from an empty database, with the scripts above.
 
-| Branch | Deck (974 rows) | Reason only | Contract (168 probes) | Sequences (10) | Shrink |
-| --- | --- | --- | --- | --- | --- |
-| `main` | 0 differ | 0 | 0 violations | 10 pass | none |
-| `demo-1-server-never-returns-5xx` | 0 differ | 0 | **60 violations** | 10 pass | none |
-| `demo-2-invalid-date-range` | **233 differ** | **158** | 0 violations | 10 pass | none |
-| `demo-3-meeting-creation-scenarios` | **1 differs** | 0 | 0 violations | **`seq-containment-refused` fails** | 2 steps, confirmed |
-| `demo-4-meeting-acceptations` | 0 differ | 0 | 0 violations | **`seq-accept-would-overlap` fails** | 4 steps, confirmed |
-| `demo-5-empty-meetings` | 0 differ | 0 | 0 violations | **`seq-owner-cannot-reject` fails** | 2 steps, confirmed |
+| Branch | Deck (974 rows) | Reason only | Contract (168 probes) | Sequences (10) | Shrink | Witness (1726 obligations) |
+| --- | --- | --- | --- | --- | --- | --- |
+| `main` | 0 differ | 0 | 0 violations | 10 pass | none | all confirmed |
+| `demo-1-server-never-returns-5xx` | 0 differ | 0 | **60 violations** | 10 pass | none | all confirmed |
+| `demo-2-invalid-date-range` | **233 differ** | **158** | 0 violations | 10 pass | none | all confirmed |
+| `demo-3-meeting-creation-scenarios` | **1 differs** | 0 | 0 violations | **`seq-containment-refused` fails** | 2 steps, confirmed | all confirmed |
+| `demo-4-meeting-acceptations` | 0 differ | 0 | 0 violations | **`seq-accept-would-overlap` fails** | 4 steps, confirmed | **1 refusal class refuted** |
+| `demo-5-empty-meetings` | 0 differ | 0 | 0 violations | **`seq-owner-cannot-reject` fails** | 2 steps, confirmed | **1 refusal class refuted** |
 
 The deck was cut at strength 3. For the record, the strength-2 deck it replaces had 574 rows and read
 `demo-2` as 16 differing rows of which 8 were reason-only, and `demo-3` as the same single `contains`
@@ -435,6 +447,21 @@ row. Which bug each branch's deck catches did not change; only how many rows cat
 
 The walk, the mutation lane and the declared-domain rollup all read the rulebook and the model only,
 so their numbers are the same on every branch.
+
+The witness lane is the walk replayed. The walk's numbers are statements about the model: 970 landed
+transitions and 746 transition pairs the ten pinned sequences do not reach. The witness lane sends
+each of them, and the ten refusal classes, through the API as its own sequence with its own reset,
+and reports which of them the app confirmed. On `main` all 1726 hold. On `demo-4` and `demo-5` one
+refusal class is refuted, and the witness that refutes it is two steps long: create a meeting, then
+have its owner accept it (`demo-4`, where the app stops seeing the overlap) or reject it (`demo-5`,
+where the app lets them).
+
+The three other branches read clean here, and that is the lane's shape, not a miss. `demo-1` and
+`demo-2` live outside the twin's alphabet — a malformed body, a DST day the twin never books.
+`demo-3` lives inside it, but the witness lane owes one witness per refusal *class*, not per member:
+the class `create/apply/overlaps a confirmed meeting` is discharged by a witness the buggy SQL still
+refuses correctly, and containment is another member of the same class. The pinned sequence
+`seq-containment-refused` is what names that member, which is why both lanes run.
 
 Each shrink result keeps the same number of steps. The ten sequences are already as short as
 possible. The engine confirms this by replaying the shortest version it finds. Nothing was random, so
@@ -484,8 +511,8 @@ karate/
   required.json      the states, transitions and rejections the twin must cover
   expected.json      the result each branch must produce
   engine.version     the engine version, read by every script and the CI workflow
-  *.sh               engine, serve, ka, app, mock, reset, drive, contract, live, walk, mutate,
-                     verify, cut-deck, jqwik-check, switch-sut
+  *.sh               engine, serve, ka, app, mock, reset, drive, contract, live, walk, witness,
+                     mutate, verify, cut-deck, jqwik-check, switch-sut
 ```
 
 ## A note on intervals

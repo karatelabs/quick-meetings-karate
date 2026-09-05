@@ -6,3 +6,4 @@ lib/
 .app.pid
 *.log
 rulebooks/*/.baseline/live.json
+rulebooks/*/.baseline/witness.json

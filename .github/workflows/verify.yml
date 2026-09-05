@@ -1,9 +1,9 @@
 # verify.yml — the parity proof, re-run on every push.
 #
 # One job per branch: main and the five defect branches. Each stands the app up against a real
-# Postgres, points the engine at it, runs the deck, contract, walk, sequence and mutation lanes, and
-# asserts the finding that branch is expected to produce (karate/expected.json). A branch whose
-# finding changes fails here — that is the whole point.
+# Postgres, points the engine at it, runs the deck, contract, walk, sequence, witness and mutation
+# lanes, and asserts the finding that branch is expected to produce (karate/expected.json). A branch
+# whose finding changes fails here — that is the whole point.
 #
 # One-time setup: a repository secret KARATE_LICENSE holding the inline karate.lic text. The engine
 # jar is never committed; it is extracted from the pinned GHCR image by karate/engine.sh.

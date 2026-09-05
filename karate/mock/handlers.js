@@ -127,11 +127,11 @@
         return null;
     }
 
-    // does joining `meeting` double-book `user`? the rulebook answers, over the rest of the schedule
+    // does joining `meeting` double-book `user`? the rulebook answers, over the whole schedule -
+    // the meeting itself included, so a user already confirmed on it conflicts with their own
+    // commitment, which is what the app answers
     function conflictsWith(s, meeting, user) {
-        var busy = [];
-        var mine = confirmed(s, user);
-        for (var i = 0; i < mine.length; i++) { if (mine[i].id !== meeting.id) { busy.push(mine[i]); } }
+        var busy = confirmed(s, user);
         var w = wireTime(meeting.startMs);
         return decide(meeting.startMs, (meeting.endMs - meeting.startMs) / 60000, 'UTC',
                       w.date, w.time.substring(0, 5), busy) !== null;
@@ -193,8 +193,8 @@
                 fail(response, 404, 'Meeting ' + ib.meetingId + ' not found');
             } else {
                 var clash = false;
+                // the conflict is decided for every invitee, member or not, before membership is
                 for (var i = 0; i < ib.invitees.length; i++) {
-                    if (memberOf(mtg, ib.invitees[i]) !== null) { continue; }
                     if (conflictsWith(s, mtg, ib.invitees[i])) { clash = true; }
                 }
                 if (clash) {
@@ -221,10 +221,10 @@
             var mem = am === null ? null : memberOf(am, ab.userId);
             if (am === null) {
                 fail(response, 404, 'Meeting ' + ab.meetingId + ' not found');
-            } else if (mem === null || mem.role !== 'INVITED') {
-                fail(response, 400, 'Failed to accept invite');
             } else if (conflictsWith(s, am, ab.userId)) {
                 fail(response, 400, 'Overlapping meetings exist');
+            } else if (mem === null || mem.role !== 'INVITED') {
+                fail(response, 400, 'Failed to accept invite');
             } else {
                 mem.role = 'ACCEPTED';
                 response.body = { message: 'Accepted' };

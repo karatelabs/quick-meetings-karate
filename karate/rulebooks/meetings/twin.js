@@ -58,10 +58,13 @@ function conflicts(proposed, existing) {
     return r.output.decision === 'refused';
 }
 
+// the schedule is not read as excluding the proposed meeting: a user already confirmed on it holds
+// a commitment that overlaps it - itself - and the service refuses the invite and the acceptance on
+// exactly that ground
 function conflictsWithSchedule(w, user, proposed) {
     var busy = confirmed(w, user);
     for (var i = 0; i < busy.length; i++) {
-        if (busy[i].id !== proposed.id && conflicts(proposed, busy[i])) { return true; }
+        if (conflicts(proposed, busy[i])) { return true; }
     }
     return false;
 }
@@ -98,7 +101,10 @@ function anyRole(w, role) {
 }
 
 t.command('create', {
+    // the model carries two meetings; a full world is where it stops looking, not a rule the
+    // service holds - no request can make the app refuse a third meeting
     when: function (w) { return w.meetings.length < MAX_MEETINGS; },
+    scopeGuard: true,
     args: function (a) {
         a.enum('owner', [1, 2]);
         a.enum('slot', ['A', 'B', 'C', 'D', 'E']);
@@ -133,7 +139,7 @@ t.command('create', {
         if (r.status === 400) { return { kind: 'refused', reason: CREATE_CONFLICT }; }
         return { kind: 'unknown' };
     },
-    captures: ['meetings'],
+    captures: ['meetings[*].id'],
     capture: function (w, r) { w.meetings[w.meetings.length - 1].id = r.body.id; }
 });
 
@@ -143,14 +149,15 @@ t.command('invite', {
         a.enum('m', [0, 1]);
         a.enum('user', USERS);
     },
-    // re-inviting an existing attendee is a no-op the service answers 200 to, so the command
-    // declares itself idempotent rather than refusing something the wire accepts
+    // re-inviting someone who already holds an open invitation is a no-op the service answers 200
+    // to, so the command declares itself idempotent rather than refusing something the wire accepts
     idempotent: true,
     apply: function (w, a) {
         if (a.m >= w.meetings.length) { t.reject(INVITE_NO_MEETING); }
         var mtg = w.meetings[a.m];
-        if (memberOf(mtg, a.user) !== null) { return; }
+        // the conflict is decided before membership is, as the service decides it
         if (conflictsWithSchedule(w, a.user, mtg)) { t.reject(INVITE_CONFLICT); }
+        if (memberOf(mtg, a.user) !== null) { return; }
         mtg.members.push({ user: a.user, role: 'INVITED' });
     },
     req: 'QM-005/1',
@@ -163,7 +170,10 @@ t.command('invite', {
         if (r.status === 404) { return { kind: 'refused', reason: INVITE_NO_MEETING }; }
         if (r.status === 400) { return { kind: 'refused', reason: INVITE_CONFLICT }; }
         return { kind: 'unknown' };
-    }
+    },
+    // the empty world sends MISSING_MEETING_ID, so the guard's refusal reaches the wire as the
+    // observer's 404 reason
+    refusals: { guard: INVITE_NO_MEETING }
 });
 
 t.command('accept', {
@@ -175,9 +185,9 @@ t.command('accept', {
     apply: function (w, a) {
         if (a.m >= w.meetings.length) { t.reject(ACCEPT_NO_MEETING); }
         var mtg = w.meetings[a.m];
+        if (conflictsWithSchedule(w, a.user, mtg)) { t.reject(ACCEPT_CONFLICT); }
         var mem = memberOf(mtg, a.user);
         if (mem === null || mem.role !== 'INVITED') { t.reject(ACCEPT_NOT_INVITED); }
-        if (conflictsWithSchedule(w, a.user, mtg)) { t.reject(ACCEPT_CONFLICT); }
         mem.role = 'ACCEPTED';
     },
     req: 'QM-006/1',
@@ -194,7 +204,8 @@ t.command('accept', {
                 : { kind: 'refused', reason: ACCEPT_NOT_INVITED };
         }
         return { kind: 'unknown' };
-    }
+    },
+    refusals: { guard: ACCEPT_NO_MEETING }
 });
 
 t.command('reject', {
@@ -220,7 +231,8 @@ t.command('reject', {
         if (r.status === 200) { return { kind: 'applied' }; }
         if (r.status === 400 || r.status === 404) { return { kind: 'refused', reason: REJECT_REFUSED }; }
         return { kind: 'unknown' };
-    }
+    },
+    refusals: { guard: REJECT_REFUSED }
 });
 
 // t.calc is apply-only, so the invariant states the closed-interval test directly (QM-002)

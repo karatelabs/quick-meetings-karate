@@ -13,6 +13,10 @@ up() {
   if is_up; then echo "already up — http://localhost:$PORT"; return 0; fi
   JAR="$("$HERE/engine.sh")"
   [ -n "${KARATE_LICENSE_TEXT:-}" ] || export KARATE_LICENSE_PATH="$HERE/.karate/karate.lic"
+  # the witness lane replays one sequence per obligation - hundreds of them, each with its own
+  # database reset - past the engine's 300s default live box, which is read from this JVM's
+  # environment and not from the call
+  export KARATE_RULES_TWIN_LIVE_TIMEOUT_MS="${KARATE_RULES_TWIN_LIVE_TIMEOUT_MS:-3600000}"
   mkdir -p "$HERE/target"
   nohup java -jar "$JAR" serve "$HERE" --port "$PORT" --report-dir target/karate-reports > "$LOG" 2>&1 &
   echo $! > "$PIDFILE"
