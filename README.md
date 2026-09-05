@@ -275,21 +275,21 @@ saved scenario that used to claim a zero-length meeting was a valid row now says
 `_expect: "schema-reject"`, and the check grades it `REFUSED` - which is the claim that matters, and
 the one the old deck rows only ever made by accident.
 
-The walk shows that the model was explored, not sampled. It reaches all 5 states and all 17
-transitions over 219 nodes and 1,294 edges. It counts 3,086 refused actions. It checks the two
+The walk shows that the model was explored, not sampled. It reaches all 5 states and all 15
+transitions over 219 nodes and 1,102 edges. It counts 3,278 refused actions. It checks the two
 invariants 438 times with no failure. It stops because there is nothing left to explore, not because
 it hit a limit. The ten sequences in `rulebooks/meetings/sequences.json` were written against this
 walk, one for each required transition and rejection in `required.json`. Every run replays the same
 ten.
 
-The walk also reports **transition pairs: 7 of 602**, and 595 gaps. A pair is one transition followed
+The walk also reports **transition pairs: 7 of 500**, and 493 gaps. A pair is one transition followed
 by another, in that order, from the same world. Reaching every transition once says nothing about
 what happens after it; a pair says the second one was reached *with the first already applied*. That
 is where the last two bugs live, and it is the coverage the deck cannot buy at any number of rows.
 
-The denominator is the walk's, not a guess. 602 is the number of ordered pairs the walk actually
-composed, so every one of them is known to be feasible. Counting 17 transitions two deep would give
-289, which includes pairs no world admits, and squaring the wrong thing is how a made-up denominator
+The denominator is the walk's, not a guess. 500 is the number of ordered pairs the walk actually
+composed, so every one of them is known to be feasible. Counting 15 transitions two deep would give
+225, which includes pairs no world admits, and squaring the wrong thing is how a made-up denominator
 flatters a low number. The ten pinned sequences cover 7. The gap list is not a failure — CI does not
 read it — it is the worklist. Each gap carries a shortest witness, and pinning one is one call:
 
