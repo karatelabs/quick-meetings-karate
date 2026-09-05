@@ -92,7 +92,9 @@ You need:
 The engine is a jar named `karate-agent`. It is never committed. `karate/engine.sh` downloads it into
 `karate/lib/`. It tries three sources in order: the `KARATE_AGENT_JAR` variable, the pinned release
 asset, then the container image `ghcr.io/karatelabs/karate-agent`. The version is in one file,
-[`karate/engine.version`](karate/engine.version). Every script and the CI workflow read it.
+[`karate/engine.version`](karate/engine.version). Every script and the CI workflow read it. Both
+`engine.sh` and `verify.sh` print the resolved jar and its sha256, so a run always says which engine
+produced its numbers — one version string can name two different jars.
 
 ## Step 1: run everything against the mock
 

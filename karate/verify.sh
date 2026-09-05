@@ -6,13 +6,18 @@ cd "$(dirname "$0")"
 BR="${1:-$(git rev-parse --abbrev-ref HEAD)}"
 AGAINST="${2:-live}"
 
+# Which jar produced these numbers. Never an asserted key — the sha changes with every build —
+# but printed beside them, so numbers that disagree with expected.json have somewhere to look.
+ENGINE="$(./engine.sh 2>&1 >/dev/null | sed -n 's/^engine: //p' | tail -1 || true)"
+
 DECK="$(./drive.sh)"
 CONTRACT="$(./contract.sh)"
 LIVE="$(./live.sh "$AGAINST")"
 WALK="$(./walk.sh)"
 MUTATE="$(./mutate.sh)"
 
-DECK="$DECK" CONTRACT="$CONTRACT" LIVE="$LIVE" WALK="$WALK" MUTATE="$MUTATE" BR="$BR" python3 - <<'PY'
+DECK="$DECK" CONTRACT="$CONTRACT" LIVE="$LIVE" WALK="$WALK" MUTATE="$MUTATE" BR="$BR" \
+ENGINE="$ENGINE" python3 - <<'PY'
 import json, os, sys
 
 deck, contract, live, walk, mutate = (json.loads(os.environ[n])
@@ -67,6 +72,7 @@ width = max(len(k) for k in got)
 for k in got:
     flag = '  <-- expected %r' % (want[k],) if k in bad else ''
     print('%-*s  %s%s' % (width, k, got[k], flag))
+print('%-*s  %s' % (width, 'engine', os.environ.get('ENGINE') or 'unresolved'))
 if bad:
     sys.exit('\n%s: %d expectation(s) not met' % (br, len(bad)))
 print('\n%s: every expectation met' % br)
