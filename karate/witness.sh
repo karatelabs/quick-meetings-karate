@@ -15,12 +15,15 @@ case "$AGAINST" in
   mock) RESET=./reset-mock.sh ;;
   *) echo "usage: ./witness.sh [live|mock]" >&2; exit 2 ;;
 esac
+# QM_SUT_REVISION: as in live.sh.
 # thousands of sequences in one call, past ka.sh's own default
 export KA_TIMEOUT="${KA_TIMEOUT:-3600}"
 ./ka.sh "
 var PLAN = JSON.parse(File.read('plan.json'));
-var r = Twin.witness('meetings', {baseUrl: '${QM_URL:-http://localhost:9981}', against: '$AGAINST',
-                                  plan: PLAN, reset: {command: ['$RESET']}, timeoutMs: 10000});
+var o = {baseUrl: '${QM_URL:-http://localhost:9981}', against: '$AGAINST',
+         plan: PLAN, reset: {command: ['$RESET']}, timeoutMs: 10000};
+if ('${QM_SUT_REVISION:-}') { o.sutRevision = '${QM_SUT_REVISION:-}'; }
+var r = Twin.witness('meetings', o);
 ({transitions: r.transitions, pairs: r.pairs,
   refusals: {witnessed: r.refusals.witnessed, compatible: r.refusals.compatible,
              missed: r.refusals.missed, refuted: r.refusals.refuted, blocked: r.refusals.blocked,

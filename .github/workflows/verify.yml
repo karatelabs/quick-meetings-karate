@@ -5,6 +5,11 @@
 # lanes, and asserts the finding that branch is expected to produce (karate/expected.json). A branch
 # whose finding changes fails here — that is the whole point.
 #
+# Each job then renders the rulebook's analysis report under plan.json from the live and witness
+# records that job just wrote (they are gitignored, so the report can only be made here). A push to
+# main publishes every branch that met its expectation to GitHub Pages, one directory per branch:
+# https://karatelabs.github.io/quick-meetings-karate/<branch>/
+#
 # One-time setup: a repository secret KARATE_LICENSE holding the inline karate.lic text. The engine
 # jar is never committed; it is extracted from the pinned GHCR image by karate/engine.sh.
 name: verify
@@ -61,6 +66,12 @@ jobs:
         with:
           ref: ${{ matrix.branch }}
 
+      # The service's identity for the live records: the commit the app is built from. live.sh and
+      # witness.sh record it, and the report hands the same value to the check leg, so a refuted
+      # witness gates there instead of reading NOREVISION.
+      - name: Name the service revision
+        run: echo "QM_SUT_REVISION=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
       - uses: actions/setup-java@v4
         with:
           java-version: '21'
@@ -109,8 +120,87 @@ jobs:
         run: karate/mutate.sh
 
       - name: Every lane, against the expected finding for this branch
+        id: verify
         run: karate/verify.sh ${{ matrix.branch }}
+
+      # Reads live.json and witness.json as verify.sh left them; makes no live call. Rendered even
+      # when the expectation failed, so the artifact shows what differed; published only when it held.
+      - name: The rule-analysis report, under plan.json
+        id: report
+        if: success() || steps.verify.outcome == 'failure'
+        run: |
+          mkdir -p karate/target/pages
+          karate/ka.sh "Rule.report('meetings', {plan: 'plan.json', sutRevision: '$QM_SUT_REVISION', out: 'target/pages/'})"
+          cp karate/target/pages/meetings-rule-analysis.html karate/target/pages/index.html
+
+      # report-* is what the pages job publishes; a branch whose expectation failed uploads under
+      # another name, so its page is inspectable but never replaces the last good one.
+      - name: Upload the report
+        if: always() && steps.report.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.verify.outcome == 'success' && 'report' || 'unverified-report' }}-${{ matrix.branch }}
+          path: karate/target/pages
+          retention-days: 7
 
       - name: App log
         if: failure()
         run: tail -100 karate/target/app.log karate/target/serve.log karate/target/jqwik.log || true
+
+  # One push to gh-pages per run, not six: the matrix jobs would otherwise race each other for the
+  # branch. Only branches that met their expectation have an artifact, so a red branch keeps its last
+  # good page. keep_files leaves the other directories in place.
+  pages:
+    needs: verify
+    if: always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.verify.result != 'skipped'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # peaceiris pushes to gh-pages
+    concurrency:
+      group: gh-pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: report-*
+          path: site
+
+      - name: Lay out one directory per branch
+        id: site
+        run: |
+          shopt -s nullglob
+          dirs=(site/report-*)
+          if [ ${#dirs[@]} -eq 0 ]; then
+            echo "::warning::no branch rendered a report — nothing to publish"
+            echo "ok=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          mkdir -p public
+          for d in "${dirs[@]}"; do mv "$d" "public/${d#site/report-}"; done
+          {
+            echo '<!doctype html><meta charset="utf-8"><title>quick-meetings reports</title>'
+            echo '<h1>quick-meetings — rule-analysis report per branch</h1><ul>'
+            for b in main demo-1-server-never-returns-5xx demo-2-invalid-date-range \
+                     demo-3-meeting-creation-scenarios demo-4-meeting-acceptations demo-5-empty-meetings; do
+              echo "<li><a href=\"$b/\">$b</a></li>"
+            done
+            echo '</ul>'
+          } > public/index.html
+          echo "ok=true" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to GitHub Pages
+        id: publish
+        if: steps.site.outputs.ok == 'true'
+        continue-on-error: true
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: public
+          keep_files: true
+
+      - name: Retry the publish (another push won the race for gh-pages)
+        if: steps.site.outputs.ok == 'true' && steps.publish.outcome == 'failure'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: public
+          keep_files: true

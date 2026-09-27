@@ -430,7 +430,11 @@ find what `expected.json` says they must. If a bug stops reproducing, both check
 
 ## Results
 
-Measured with engine `2.1.3.RC3`, from an empty database, with the scripts above.
+Measured with engine `2.1.4.RC1`, from an empty database, with the scripts above. Each branch's
+rule-analysis report, rendered under `plan.json` from the run CI just made, is published at
+`https://karatelabs.github.io/quick-meetings-karate/<branch>/` ([`main`](https://karatelabs.github.io/quick-meetings-karate/main/),
+[`demo-4`](https://karatelabs.github.io/quick-meetings-karate/demo-4-meeting-acceptations/), [all](https://karatelabs.github.io/quick-meetings-karate/)):
+its Twin tab shows each pinned sequence's live run and shrink.
 
 | Branch | Deck (974 rows) | Reason only | Contract (168 probes) | Sequences (10) | Shrink | Witness (941 obligations) |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -481,6 +485,9 @@ both.
 branch. Each job starts Postgres 16.4 with the schema and credentials from the compose file, starts
 the app, downloads the engine from GHCR, and runs `jqwik-check.sh` and `verify.sh` for that branch.
 The run is red if a bug stops reproducing, or if `main` stops being clean.
+
+A push to `main` then publishes each branch that met its expectation to GitHub Pages, one
+directory per branch. A branch that failed keeps its last good page.
 
 [`engine-gate.yml`](.github/workflows/engine-gate.yml) runs first. It checks that the pinned engine
 image exists. If the image is not published yet, the lanes are skipped with a warning. They are not
