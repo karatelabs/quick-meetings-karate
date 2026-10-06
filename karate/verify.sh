@@ -40,6 +40,8 @@ got = {
     'deckRows': deck['rows'],
     'deckDiverged': deck['diverged'],
     'deckReasonOnly': deck['reasonOnly'],
+    # deck rows the oracle classifies as containment, the relation demo-3's bug lives in
+    'deckContains': deck['byRelation'].get('contains', 0),
     'deckSetupFailed': deck['setupFailed'],
     'deckAccounted': deck['agreed'] + deck['diverged'] == deck['rows'],
     'deckOutOfDomain': deck['outOfDomain'],

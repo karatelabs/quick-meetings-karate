@@ -33,9 +33,8 @@ Both are deterministic. The rulebook drives a fixed deck of 974 rows. The twin r
 sequences of actions, and a witness lane replays the 941 obligations its own walk owes. Every run
 gives the same result, and every finding reproduces on the first try.
 
-To be fair to jqwik: it can shrink a failing chain of actions that nobody planned for. Our sequences
-are planned, so shrinking only confirms that they are already minimal. And random actions can reach
-states that a model does not include.
+To be fair to jqwik: random actions can reach states that a model does not include. The engine
+shrinks any failing sequence, pinned or derived from the walk, but only over orders the model reaches.
 
 ## The five bugs, both ways
 
@@ -116,6 +115,7 @@ cd karate
 deckRows                974
 deckDiverged            0
 deckReasonOnly          0
+deckContains            1
 deckSetupFailed         0
 deckAccounted           True
 deckOutOfDomain         0
@@ -277,7 +277,7 @@ the one the old deck rows only ever made by accident.
 
 The walk shows that the model was explored, not sampled. It reaches all 5 states and all 15
 transitions over 219 nodes and 1,102 edges. It counts 3,278 refused actions. It checks the two
-invariants 438 times with no failure. It stops because there is nothing left to explore, not because
+invariants with no failure. It stops because there is nothing left to explore, not because
 it hit a limit. The ten sequences in `rulebooks/meetings/sequences.json` were written against this
 walk, one for each required transition and rejection in `required.json`. Every run replays the same
 ten.
@@ -386,6 +386,7 @@ demo-3-meeting-creation-scenarios: me.mourjo.quickmeetings.generativetests.Overl
 deckRows                974
 deckDiverged            1
 deckReasonOnly          0
+deckContains            1
 deckSetupFailed         0
 deckAccounted           True
 deckOutOfDomain         0
@@ -472,12 +473,6 @@ refuses correctly, and containment is another member of the same class. The pinn
 Each shrink result keeps the same number of steps. The ten sequences are already as short as
 possible. The engine confirms this by replaying the shortest version it finds. Nothing was random, so
 there was nothing to cut.
-
-One number is lower here than against the upstream branches. Upstream, each demo branch was cut
-before `main` got request-body validation, so those branches carry that older behaviour too. Against
-the upstream `demo-1` branch, the contract lane reports 70 violations instead of 60. The extra 10
-come from the missing validation, not from the bug. The `demo-2` deck reports 16 differing rows on
-both.
 
 ## Continuous integration
 
